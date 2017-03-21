@@ -106,24 +106,23 @@ def main():  # noqa: D103
     input('Hit enter to run a random policy...')
 
     initial_state = env.reset()
-    # env.render()
-    # time.sleep(1)  # just pauses so you can see the output
+    env.render()
+    time.sleep(8)  # just pauses so you can see the output
 
-    atari_preprocessor = tfrl.preprocessors.AtariPreprocessor((84, 84))
-    _out = atari_preprocessor.process_state_for_network(initial_state)
+    # atari_preprocessor = tfrl.preprocessors.AtariPreprocessor((84, 84))
+    # _out = atari_preprocessor.process_state_for_memory(initial_state)
 
-    history_preprocessor = tfrl.preprocessors.HistoryPreprocessor(4)
-    print(history_preprocessor.h_state)
-    _out_h = history_preprocessor.process_state_for_network(_out)
-    print(_out_h)
-    _out_h = history_preprocessor.process_state_for_network(_out)
-    print(_out_h)
-    history_preprocessor.reset()
-    print(history_preprocessor.h_state)
+    # history_preprocessor = tfrl.preprocessors.HistoryPreprocessor(4)
+    # print(history_preprocessor.h_state)
+    # _out_h = history_preprocessor.process_state_for_network(_out)
+    # print(_out_h)
+    # _out_h = history_preprocessor.process_state_for_network(_out)
+    # print(_out_h)
+    # history_preprocessor.reset()
+    # print(history_preprocessor.h_state)
 
     # _img = Image.fromarray(_out)
-    # print(_out)
-    # _img.save("test_spaceinvaders", "JPEG")
+    # _img.save("test_enduro", "JPEG")
 
     """total_reward = 0
     num_steps = 0

@@ -1,6 +1,6 @@
 """Core classes."""
 
-
+from numpy import random
 
 class Sample:
     """Represents a reinforcement learning sample.
@@ -174,7 +174,7 @@ class ReplayMemory:
     If you are storing raw Sample objects in your memory, then you may
     not need the end_episode method, and you may want to tweak the
     append method. This will make the sample method easy to implement
-    (just ranomly draw saamples saved in your memory).
+    (just ranomly draw samples saved in your memory).
 
     However, the above approach will waste a lot of memory (as states
     will be stored multiple times in s as next state and then s' as
@@ -203,7 +203,7 @@ class ReplayMemory:
     def __init__(self, max_size, window_length):
         """Setup memory.
 
-        You should specify the maximum size o the memory. Once the
+        You should specify the maximum size of the memory. Once the
         memory fills up oldest values should be removed. You can try
         the collections.deque class as the underlying storage, but
         your sample method will be very slow.
@@ -211,16 +211,29 @@ class ReplayMemory:
         We recommend using a list as a ring buffer. Just track the
         index where the next sample should be inserted in the list.
         """
-        pass
+        self.buffer_size = max_size
+        self.window_length = window_length
+        self.buffer = [0 for i in range(max_size)]
+        self.index = 0 # track the index where the next sample should be inserted
 
-    def append(self, state, action, reward):
-        raise NotImplementedError('This method should be overridden')
+    def append(self, state, action, reward, next_state, is_terminal):
+        _sample = Sample(state, action, reward, next_state, is_terminal)
+        self.buffer[self.index] = _sample
+        self.index += 1
+        if self.index == self.buffer_size:
+            self.index = 0
 
     def end_episode(self, final_state, is_terminal):
         raise NotImplementedError('This method should be overridden')
 
     def sample(self, batch_size, indexes=None):
-        raise NotImplementedError('This method should be overridden')
+        if indexes == None:
+            indexes = random.choice(self.buffer_size, batch_size, replace=False)
+        random_samples = []
+        for _id in indexes:
+            random_samples.append(self.buffer[_id])
+        return random_samples
 
     def clear(self):
-        raise NotImplementedError('This method should be overridden')
+        self.buffer = [0 for i in range(max_size)]
+        self.index = 0
