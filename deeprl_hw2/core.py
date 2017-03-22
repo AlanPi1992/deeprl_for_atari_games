@@ -237,5 +237,5 @@ class ReplayMemory:
         return random_samples
 
     def clear(self):
-        self.buffer = [0 for i in range(max_size)]
+        self.buffer = [0 for i in range(self.buffer_size)]
         self.index = 0
