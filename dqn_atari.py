@@ -48,7 +48,15 @@ def create_model(window, input_shape, num_actions,
     keras.models.Model
       The Q-model.
     """
-    pass
+    with tf.name_scope(model_name):
+        input_img = Input(shape = (window,) + input_shape)
+        conv1 = Convolution2D(32, (8,8), strides=4, padding='same', activation='relu')(input_img)
+        conv2 = Convolution2D(64, (4,4), strides=2, padding='same', activation='relu')(conv1)
+        # conv2 = Convolution2D(64, (3,3), strides=1, padding='same', activation='relu')(conv2)
+        full1 = Dense(512, activation='relu')(conv2)
+        out = Dense(num_actions)(full1)
+        model = Model(input = input_img, output = out)
+    return model
 
 
 def get_output_folder(parent_dir, env_name):
@@ -96,7 +104,6 @@ def main():  # noqa: D103
     parser.add_argument('--seed', default=703, type=int, help='Random seed')
 
     args = parser.parse_args()
-    # args.input_shape = tuple(args.input_shape)
     args.output = get_output_folder(args.output, args.env)
 
     # here is where you should start up a session,
@@ -108,6 +115,15 @@ def main():  # noqa: D103
     initial_state = env.reset()
     env.render()
     time.sleep(8)  # just pauses so you can see the output
+
+    target_Q_net = create_model(4, (84, 84), num_actions, model_name='target_q_network')
+
+
+
+
+
+
+
 
     # atari_preprocessor = tfrl.preprocessors.AtariPreprocessor((84, 84))
     # _out = atari_preprocessor.process_state_for_memory(initial_state)
