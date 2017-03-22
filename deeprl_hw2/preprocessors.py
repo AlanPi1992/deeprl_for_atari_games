@@ -23,7 +23,7 @@ class HistoryPreprocessor(Preprocessor):
 
     """
 
-    def __init__(self, history_length=1):
+    def __init__(self, history_length=4):
         self.h_length = history_length
         self.h_state = np.zeros((self.h_length, 84, 84), dtype=np.float32)
 
@@ -125,8 +125,11 @@ class AtariPreprocessor(Preprocessor):
         """Clip reward between -1 and 1."""
         if reward > 0:
             return 1
-        else:
+        elif reward<0:
             return -1
+        else:
+            return 0
+
 
 
 class PreprocessorSequence(Preprocessor):
@@ -144,3 +147,5 @@ class PreprocessorSequence(Preprocessor):
     """
     def __init__(self, preprocessors):
         pass
+
+

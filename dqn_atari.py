@@ -116,7 +116,7 @@ def main():  # noqa: D103
     env.render()
     time.sleep(8)  # just pauses so you can see the output
 
-    target_Q_net = create_model(4, (84, 84), num_actions, model_name='target_q_network')
+    #target_Q_net = create_model(4, (84, 84), num_actions, model_name='target_q_network')
 
 
 
