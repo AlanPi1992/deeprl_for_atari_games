@@ -110,23 +110,18 @@ def main():  # noqa: D103
     # create your DQN agent, create your model, etc.
     # then you can run your fit method.
     env = gym.make(args.env)
-    input('Hit enter to run a random policy...')
+    input('Hit to begin training...')
 
-    initial_state = env.reset()
-    env.render()
-    time.sleep(8)  # just pauses so you can see the output
-
-    #target_Q_net = create_model(4, (84, 84), num_actions, model_name='target_q_network')
+    env.action_space
 
 
 
 
+    target_Q_net = create_model(4, (84, 84), num_actions, model_name='target_q_network')
 
 
-
-
-    # atari_preprocessor = tfrl.preprocessors.AtariPreprocessor((84, 84))
-    # _out = atari_preprocessor.process_state_for_memory(initial_state)
+    atari_preprocessor = tfrl.preprocessors.AtariPreprocessor((84, 84))
+    _out = atari_preprocessor.process_state_for_memory(initial_state)
 
     # history_preprocessor = tfrl.preprocessors.HistoryPreprocessor(4)
     # print(history_preprocessor.h_state)

@@ -1,5 +1,9 @@
 """Main DQN agent."""
 
+import Keras
+from keras.models import Model
+import numpy as np
+
 class DQNAgent:
     """Class implementing DQN.
 
@@ -78,7 +82,7 @@ class DQNAgent:
         self.q_network.compile(optimizer = optimizer,
                                loss = loss_func)
 
-    def calc_q_values(self, state):
+    def calc_q_values(self, state, q_net):
         """Given a state (or batch of states) calculate the Q-values.
 
         Basically run your network on these states.
@@ -87,7 +91,9 @@ class DQNAgent:
         ------
         Q-values for the state(s)
         """
-        pass
+        q_value = q_net.predict_on_batch(state)
+        return q_value
+
 
     def select_action(self, state, **kwargs):
         """Select the action based on the current state.
@@ -112,7 +118,7 @@ class DQNAgent:
         """
         pass
 
-    def update_policy(self):
+    def update_policy(self, target_q):
         """Update your policy.
 
         Behavior may differ based on what stage of training your
@@ -127,7 +133,34 @@ class DQNAgent:
         You might want to return the loss and other metrics as an
         output. They can help you monitor how training is going.
         """
-        pass
+        mini_batch = self.memory.sample(self.batch_size)
+        y = [0 for i in range(len(mini_batch))]
+        counter = 0
+        x=[]
+        for _sample in mini_batch:
+            x.append(_sample.state)
+
+        y=self.calc_q_values(x,self.q_network) #reserve the order in mini_batch
+        tmp_action = np.argmax(y) #action number consistent with the index?
+
+
+        for _sample in mini_batch:
+
+            if _sample.is_terminal:
+                y[counter,tmp_action[counter]] = _sample.reward
+            else:
+                y[counter,tmp_action[counter]] = _sample.reward + self.gamma * max(self.calc_q_values(_sample.next_state,target_q))
+            counter += 1
+
+        train_loss = self.q_network.train_on_batch(x, y)
+        return train_loss
+
+
+
+
+
+
+
 
     def fit(self, env, num_iterations, max_episode_length=None):
         """Fit your model to the provided environment.
@@ -154,7 +187,31 @@ class DQNAgent:
           How long a single episode should last before the agent
           resets. Can help exploration.
         """
-        pass
+        #initialize replay memory
+        #initialize
+        config = Model.get_config(self.q_network)
+        target_q = Model.from_config(config)
+
+        for episode in range(max_episode_length):
+
+            initial_state = env.reset()
+            self.preprocessor.reset()
+            phi_state = self.preprocessor.process_state_for_network(initial_state)# preprocess the state, reset history preprocessor
+            counter = 0
+
+            for t in range(num_iterations):
+                tmp_action = self.policy.select_action(self.calc_q_values(phi_state,self.q_network))
+                nextstate, reward, is_terminal, debug_info = env.step(tmp_action)
+                phi_nextstate = self.preprocessor.process_state_for_network(nextstate)
+                self.memory.append(phi_state, tmp_action, reward, phi_nextstate, is_terminal)
+                self.update_policy(target_q)
+                phi_state=phi_nextstate
+                counter += 1
+                if counter == self.target_update_freq:
+                    counter = 0
+                    config = Model.get_config(self.q_network)
+                    target_q = Model.from_config(config)
+
 
     def evaluate(self, env, num_episodes, max_episode_length=None):
         """Test your agent with a provided environment.
