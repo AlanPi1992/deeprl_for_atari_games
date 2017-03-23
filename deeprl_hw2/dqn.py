@@ -135,7 +135,7 @@ class DQNAgent:
         output. They can help you monitor how training is going.
         """
         mini_batch = self.preprocessor.process_batch(self.memory.sample(self.batch_size))
-        counter = 0
+        
         x = []
         for _sample in mini_batch:
             x.append(_sample.state)
@@ -143,6 +143,7 @@ class DQNAgent:
         y = self.calc_q_values(x, self.q_network) #reserve the order in mini_batch
         tmp_action = np.argmax(y, axis = 1)
 
+        counter = 0
         for _sample in mini_batch:
             if _sample.is_terminal:
                 y[counter, tmp_action[counter]] = _sample.reward
@@ -181,15 +182,22 @@ class DQNAgent:
         """
 
         # Alaogrithm 1 from the reference paper
+        # Initialize a target Q network as same as the online Q network
         config = Model.get_config(self.q_network)
         target_q = Model.from_config(config)
         loss = []
-        for episode in range(num_iterations):
+        score = []
+        Q_update_counter = 0
+        targetQ_update_counter = 0
+        evaluate_counter = 0
+        while True:
+            if Q_update_counter > num_iterations:
+                break
+            # For every new episode, reset the environment and the preprocessor
             initial_frame = env.reset()
             self.preprocessor.reset()
             prev_phi_state_n = self.preprocessor.process_state_for_network(initial_frame, initial_frame)
             prev_phi_state_m = self.preprocessor.process_state_for_memory(initial_frame, initial_frame)
-            counter = 0
             prev_frame = initial_frame
             for t in range(max_episode_length):
                 _tmp = self.calc_q_values(np.asarray([prev_phi_state_n,]), self.q_network)
@@ -200,18 +208,30 @@ class DQNAgent:
                 phi_state_m = self.preprocessor.process_state_for_memory(next_frame, prev_frame)
                 self.memory.append(prev_phi_state_m, _action, reward, phi_state_m, is_terminal)
                 
+                Q_update_counter += 1
                 if self.memory.current_size > self.num_burn_in:
-                    loss.append(self.update_policy(target_q))
-                    print(loss[-1])
+                    # Update the Q network every self.train_freq steps
+                    if Q_update_counter % self.train_freq == 0:
+                        loss.append(self.update_policy(target_q))
+                        evaluate_counter += 1
+                        if evaluate_counter % 100 == 0:
+                            score.append(self.evaluate(env, 20, max_episode_length))
+                            print("The average total score for 20 episodes after %d updates is %d", Q_update_counter, score[-1])
+                        print(loss[-1])
+                    # Update the target Q network every self.target_update_freq steps
+                    targetQ_update_counter += 1
+                    if targetQ_update_counter == self.target_update_freq:
+                        targetQ_update_counter = 0
+                        config = Model.get_config(self.q_network)
+                        target_q = Model.from_config(config)
 
                 prev_frame = next_frame
                 prev_phi_state_m = phi_state_m
                 prev_phi_state_n = phi_state_n
-                counter += 1
-                if counter == self.target_update_freq:
-                    counter = 0
-                    config = Model.get_config(self.q_network)
-                    target_q = Model.from_config(config)
+                if is_terminal:
+                    break
+
+
 
     def evaluate(self, env, num_episodes, max_episode_length=None):
         """Test your agent with a provided environment.
@@ -226,4 +246,24 @@ class DQNAgent:
         You can also call the render function here if you want to
         visually inspect your policy.
         """
-        pass
+        # Run the policy for 20 episodes and calculate the mean total reward (final score of game)
+        mean_reward = 0
+        for episode in range(num_episodes):
+            initial_frame = env.reset()
+            self.preprocessor.reset()
+            prev_phi_state_n = self.preprocessor.process_state_for_network(initial_frame, initial_frame)
+            total_reward = 0
+            prev_frame = initial_frame
+            for t in range(max_episode_length):
+                _tmp = self.calc_q_values(np.asarray([prev_phi_state_n,]), self.q_network)
+                _action = self.policy.select_action(_tmp[0], False)
+                next_frame, reward, is_terminal, debug_info = env.step(_action)
+                phi_state_n = self.preprocessor.process_state_for_network(next_frame, prev_frame)
+                total_reward += reward
+                if is_terminal:
+                   break
+                prev_frame = next_frame
+                prev_phi_state_n = phi_state_n
+            mean_reward += total_reward
+        return mean_reward/num_episodes
+

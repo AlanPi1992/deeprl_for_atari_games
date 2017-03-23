@@ -158,7 +158,8 @@ class LinearDecayGreedyEpsilonPolicy(Policy):
           Selected action.
         """
         if is_training:
-            self.epsilon_greedy_policy.epsilon -= self.decay_stepsize
+            if self.epsilon_greedy_policy.epsilon > self.end:
+                self.epsilon_greedy_policy.epsilon -= self.decay_stepsize
         else:
             self.epsilon_greedy_policy.epsilon = 0.05
         return self.epsilon_greedy_policy.select_action(q_values)

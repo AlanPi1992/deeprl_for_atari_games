@@ -49,16 +49,17 @@ def create_model(window, input_shape, num_actions,
     keras.models.Model
       The Q-model.
     """
+    # Using tensorflow name scope
     with tf.name_scope(model_name):
-        input_img = Input(shape = (window,) + input_shape)
-        conv1 = Convolution2D(32, (8,8), strides=4, padding='same', activation='relu')(input_img) #dropout
+        input_img = Input(shape = (window,) + input_shape) # Input shape = (4, 84, 84)
+        conv1 = Convolution2D(32, (8,8), strides=4, padding='same', activation='relu')(input_img)
         _conv1 = Dropout(0.2)(conv1)
         conv2 = Convolution2D(64, (4,4), strides=2, padding='same', activation='relu')(_conv1)
         _conv2 = Dropout(0.2)(conv2)
         # conv2 = Convolution2D(64, (3,3), strides=1, padding='same', activation='relu')(conv2)
-        flat = Flatten()(_conv2)
+        flat = Flatten()(_conv2) # Flatten the convoluted hidden layers before full-connected layers
         full1 = Dense(512, activation='relu')(flat)
-        out = Dense(num_actions)(full1)
+        out = Dense(num_actions)(full1) # output layer has node number = num_actions
         model = Model(input = input_img, output = out)
     return model
 
@@ -116,11 +117,11 @@ def main():  # noqa: D103
 
     # Make the environment
     env = gym.make(args.env)
-    input('Hit to begin training...')
+    input('**************************  Hit to begin training...  ******************************')
 
     # Create a Q network
     num_actions = env.action_space.n
-    q_net = create_model(4, (84, 84), num_actions, model_name='target_q_network')
+    q_net = create_model(4, (84, 84), num_actions, model_name='Deep_Q_Net_with_Replay_Memory_and_Target_Fixing')
     print('======================== Keras Q-network model is created. =========================')
 
     # Initialize a preporcessor sequence object
@@ -130,39 +131,32 @@ def main():  # noqa: D103
     print('======================== Preprocessor object is created. =========================')
 
     # Initialize a replay memory
-    replay_memory = tfrl.core.ReplayMemory(100000, 4)
+    replay_memory = tfrl.core.ReplayMemory(1000000, 4)
     print('======================== Replay_memory object is created. =========================')
 
     # Initialize a policy
     _policy = tfrl.policy.GreedyEpsilonPolicy(0.05, num_actions)
-    policy = tfrl.policy.LinearDecayGreedyEpsilonPolicy(_policy, 1, 0.05, 25000)
+    policy = tfrl.policy.LinearDecayGreedyEpsilonPolicy(_policy, 1, 0.1, 1000000)
     print('======================== (linear-decay) Eps-Greedy Policy object is created. =========================')
 
     # Initialize a DQNAgent
     DQNAgent = tfrl.dqn.DQNAgent(q_net, preprocessor_seq, replay_memory, policy, gamma=0.99,
-                                 target_update_freq=10000, num_burn_in=100, train_freq=10000, 
+                                 target_update_freq=10000, num_burn_in=50000, train_freq=4, 
                                  batch_size=32, window_size = 4)
     print('======================== DQN agent is created. =========================')
 
     # Compiling, Training, Test
     print('======================== Model compilation begin! =========================')
-    q_net.compile(optimizer='Adam', loss=mean_huber_loss)
+    adam = Adam(lr=0.0001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
+    q_net.compile(optimizer=adam, loss=mean_huber_loss)
     print('======================== Model compilation finished! =========================')
     print('======================== Model training begin! =========================')
-    DQNAgent.fit(env, 10000000, 100000)
+    DQNAgent.fit(env, 5000000, 100000)
     print('======================== Model training finished! =========================')
-    print('======================== Model evaluateion begin! =========================')
-    DQNAgent.evaluate(env, 20)
-    print('======================== Model evaluateion finished! =========================')
+    # print('======================== Model evaluateion begin! =========================')
+    # DQNAgent.evaluate(env, 20)
+    # print('======================== Model evaluateion finished! =========================')
 
-
-    #_out = atari_preprocessor.process_state_for_memory(initial_state)
-    # print(history_preprocessor.h_state)
-    #_out_h = history_preprocessor.process_state_for_network(_out)
-    # print(_out_h)
-    #_out_h = history_preprocessor.process_state_for_network(_out)
-    # print(_out_h)
-    # print(history_preprocessor.h_state)
 
     # _img = Image.fromarray(_out)
     # _img.save("test_enduro", "JPEG")
