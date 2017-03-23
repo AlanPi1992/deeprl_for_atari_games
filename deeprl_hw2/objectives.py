@@ -2,7 +2,6 @@
 
 import tensorflow as tf
 import semver
-from keras import backend as K
 
 
 def huber_loss(y_true, y_pred, max_grad=1.):
@@ -25,12 +24,18 @@ def huber_loss(y_true, y_pred, max_grad=1.):
     tf.Tensor
       The huber loss.
     """
-    _delta = 1.0
-    x1 = 0.5*K.square(y_true - y_pred)
-    x2 = _delta*K.abs(y_true - y_pred) - 0.5*(_delta**2)
-    threshold = _delta*K.ones(shape = y_true.shape, dtype = y_true.DType)
-    condition = K.less_equal(K.abs(y_true - y_pred), threshold)
-    return K.where(condition, x1, x2)
+    # _delta = 1.0
+    # x1 = 0.5*K.square(y_true - y_pred)
+    # x2 = _delta*K.abs(y_true - y_pred) - 0.5*(_delta**2)
+    # threshold = _delta*K.ones(shape = y_true.shape)
+    # condition = K.less_equal(K.abs(y_true - y_pred), threshold)
+    # return K.where(condition, x1, x2)
+
+    error = y_true - y_pred
+    try:
+        return tf.select(tf.abs(error)<1.0, 0.5*tf.square(error), tf.abs(error)-0.5)
+    except:
+        return tf.where(tf.abs(error)<1.0, 0.5*tf.square(error), tf.abs(error)-0.5)
 
 
 def mean_huber_loss(y_true, y_pred, max_grad=1.):
@@ -54,5 +59,9 @@ def mean_huber_loss(y_true, y_pred, max_grad=1.):
     tf.Tensor
       The mean huber loss.
     """
-    h_loss = huber_loss(y_true, y_pred)
-    return K.reduce_mean(h_loss)
+    error = y_true - y_pred
+    try:
+        loss = tf.select(tf.abs(error)<1.0, 0.5*tf.square(error), tf.abs(error)-0.5)
+    except:
+        loss = tf.where(tf.abs(error)<1.0, 0.5*tf.square(error), tf.abs(error)-0.5)
+    return tf.reduce_mean(loss)

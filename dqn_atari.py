@@ -11,6 +11,7 @@ from keras.layers import (Activation, Convolution2D, Dense, Flatten, Input, Drop
                           Permute)
 from keras.models import Model
 from keras.optimizers import Adam
+from keras import losses
 import gym
 from PIL import Image
 
@@ -55,7 +56,8 @@ def create_model(window, input_shape, num_actions,
         conv2 = Convolution2D(64, (4,4), strides=2, padding='same', activation='relu')(_conv1)
         _conv2 = Dropout(0.2)(conv2)
         # conv2 = Convolution2D(64, (3,3), strides=1, padding='same', activation='relu')(conv2)
-        full1 = Dense(512, activation='relu')(_conv2)
+        flat = Flatten()(_conv2)
+        full1 = Dense(512, activation='relu')(flat)
         out = Dense(num_actions)(full1)
         model = Model(input = input_img, output = out)
     return model
@@ -117,30 +119,41 @@ def main():  # noqa: D103
     input('Hit to begin training...')
 
     # Create a Q network
-    num_actions=env.action_space.n
+    num_actions = env.action_space.n
     q_net = create_model(4, (84, 84), num_actions, model_name='target_q_network')
+    print('======================== Keras Q-network model is created. =========================')
 
     # Initialize a preporcessor sequence object
     atari_preprocessor = tfrl.preprocessors.AtariPreprocessor((84, 84))
     history_preprocessor = tfrl.preprocessors.HistoryPreprocessor(4)
     preprocessor_seq = tfrl.preprocessors.PreprocessorSequence(atari_preprocessor, history_preprocessor)
+    print('======================== Preprocessor object is created. =========================')
 
     # Initialize a replay memory
-    replay_memory = tfrl.core.ReplayMemory(1e6, 4)
+    replay_memory = tfrl.core.ReplayMemory(100000, 4)
+    print('======================== Replay_memory object is created. =========================')
 
     # Initialize a policy
-    _policy = tfrl.policy.GreedyEpsilonPolicy(0.05)
-    policy = tfrl.policy.LinearDecayGreedyEpsilonPolicy(_policy, 1, 0.05, 1e6/4)
+    _policy = tfrl.policy.GreedyEpsilonPolicy(0.05, num_actions)
+    policy = tfrl.policy.LinearDecayGreedyEpsilonPolicy(_policy, 1, 0.05, 25000)
+    print('======================== (linear-decay) Eps-Greedy Policy object is created. =========================')
 
     # Initialize a DQNAgent
     DQNAgent = tfrl.dqn.DQNAgent(q_net, preprocessor_seq, replay_memory, policy, gamma=0.99,
-                                 target_update_freq=1e4, num_burn_in=1e4, train_freq=1e4, batch_size=32)
+                                 target_update_freq=10000, num_burn_in=100, train_freq=10000, 
+                                 batch_size=32, window_size = 4)
+    print('======================== DQN agent is created. =========================')
 
     # Compiling, Training, Test
-    mean_huber = tfrl.objectives.mean_huber_loss()
-    DQNAgent.compile(optimizer='Adam', loss_func=mean_huber)
-    DQNAgent.fit(env, 1e7, 1e5)
+    print('======================== Model compilation begin! =========================')
+    q_net.compile(optimizer='Adam', loss=mean_huber_loss)
+    print('======================== Model compilation finished! =========================')
+    print('======================== Model training begin! =========================')
+    DQNAgent.fit(env, 10000000, 100000)
+    print('======================== Model training finished! =========================')
+    print('======================== Model evaluateion begin! =========================')
     DQNAgent.evaluate(env, 20)
+    print('======================== Model evaluateion finished! =========================')
 
 
     #_out = atari_preprocessor.process_state_for_memory(initial_state)
@@ -149,7 +162,6 @@ def main():  # noqa: D103
     # print(_out_h)
     #_out_h = history_preprocessor.process_state_for_network(_out)
     # print(_out_h)
-    history_preprocessor.reset()
     # print(history_preprocessor.h_state)
 
     # _img = Image.fromarray(_out)

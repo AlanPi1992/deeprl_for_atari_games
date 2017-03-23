@@ -1,6 +1,6 @@
 """Main DQN agent."""
 
-import Keras
+import keras
 from keras.models import Model
 import numpy as np
 
@@ -51,7 +51,8 @@ class DQNAgent:
                  target_update_freq,
                  num_burn_in,
                  train_freq,
-                 batch_size):
+                 batch_size,
+                 window_size):
         self.q_network = q_network
         self.preprocessor = preprocessor
         self.memory = memory
@@ -61,25 +62,26 @@ class DQNAgent:
         self.num_burn_in = num_burn_in
         self.train_freq = train_freq
         self.batch_size = batch_size
+        self.window_size = window_size
 
-    def compile(self, optimizer, loss_func):
-        """Setup all of the TF graph variables/ops.
+    # def compile(self, optimizer, loss):
+    #     """Setup all of the TF graph variables/ops.
 
-        This is inspired by the compile method on the
-        keras.models.Model class.
+    #     This is inspired by the compile method on the
+    #     keras.models.Model class.
 
-        This is a good place to create the target network, setup your
-        loss function and any placeholders you might need.
+    #     This is a good place to create the target network, setup your
+    #     loss function and any placeholders you might need.
         
-        You should use the mean_huber_loss function as your
-        loss_function. You can also experiment with MSE and other
-        losses.
+    #     You should use the mean_huber_loss function as your
+    #     loss_function. You can also experiment with MSE and other
+    #     losses.
 
-        The optimizer can be whatever class you want. We used the
-        keras.optimizers.Optimizer class. Specifically the Adam
-        optimizer.
-        """
-        self.q_network.compile(optimizer = optimizer, loss = loss_func)
+    #     The optimizer can be whatever class you want. We used the
+    #     keras.optimizers.Optimizer class. Specifically the Adam
+    #     optimizer.
+    #     """
+    #     self.q_network.compile(optimizer = optimizer, loss = loss)
 
     def calc_q_values(self, state, q_net):
         """Given a state (or batch of states) calculate the Q-values.
@@ -94,28 +96,28 @@ class DQNAgent:
         return q_value
 
 
-    def select_action(self, state, **kwargs):
-        """Select the action based on the current state.
+    # def select_action(self, state, **kwargs):
+    #     """Select the action based on the current state.
 
-        You will probably want to vary your behavior here based on
-        which stage of training your in. For example, if you're still
-        collecting random samples you might want to use a
-        UniformRandomPolicy.
+    #     You will probably want to vary your behavior here based on
+    #     which stage of training your in. For example, if you're still
+    #     collecting random samples you might want to use a
+    #     UniformRandomPolicy.
 
-        If you're testing, you might want to use a GreedyEpsilonPolicy
-        with a low epsilon.
+    #     If you're testing, you might want to use a GreedyEpsilonPolicy
+    #     with a low epsilon.
 
-        If you're training, you might want to use the
-        LinearDecayGreedyEpsilonPolicy.
+    #     If you're training, you might want to use the
+    #     LinearDecayGreedyEpsilonPolicy.
 
-        This would also be a good place to call
-        process_state_for_network in your preprocessor.
+    #     This would also be a good place to call
+    #     process_state_for_network in your preprocessor.
 
-        Returns
-        --------
-        selected action
-        """
-        pass
+    #     Returns
+    #     --------
+    #     selected action
+    #     """
+    #     pass
 
     def update_policy(self, target_q):
         """Update your policy.
@@ -132,22 +134,21 @@ class DQNAgent:
         You might want to return the loss and other metrics as an
         output. They can help you monitor how training is going.
         """
-        mini_batch = self.memory.sample(self.batch_size)
-        y = [0 for i in range(len(mini_batch))]
+        mini_batch = self.preprocessor.process_batch(self.memory.sample(self.batch_size))
         counter = 0
-        x=[]
+        x = []
         for _sample in mini_batch:
             x.append(_sample.state)
-
-        y=self.calc_q_values(x,self.q_network) #reserve the order in mini_batch
-        tmp_action = np.argmax(y) #action number consistent with the index?
+        x = np.asarray(x)
+        y = self.calc_q_values(x, self.q_network) #reserve the order in mini_batch
+        tmp_action = np.argmax(y, axis = 1)
 
         for _sample in mini_batch:
-
             if _sample.is_terminal:
-                y[counter,tmp_action[counter]] = _sample.reward
+                y[counter, tmp_action[counter]] = _sample.reward
             else:
-                y[counter,tmp_action[counter]] = _sample.reward + self.gamma * max(self.calc_q_values(_sample.next_state,target_q))
+                _tmp = self.calc_q_values(np.asarray([_sample.next_state,]), target_q)
+                y[counter, tmp_action[counter]] = _sample.reward + self.gamma * max(_tmp[0])
             counter += 1
 
         train_loss = self.q_network.train_on_batch(x, y)
@@ -178,30 +179,39 @@ class DQNAgent:
           How long a single episode should last before the agent
           resets. Can help exploration.
         """
-        #initialize replay memory
-        #initialize
+
+        # Alaogrithm 1 from the reference paper
         config = Model.get_config(self.q_network)
         target_q = Model.from_config(config)
-
+        loss = []
         for episode in range(num_iterations):
-            initial_state = env.reset()
+            initial_frame = env.reset()
             self.preprocessor.reset()
-            phi_state_n = self.preprocessor.process_state_for_network(initial_state)
-            phi_state_m = self.preprocessor.process_state_for_memory(initial_state)
+            prev_phi_state_n = self.preprocessor.process_state_for_network(initial_frame, initial_frame)
+            prev_phi_state_m = self.preprocessor.process_state_for_memory(initial_frame, initial_frame)
             counter = 0
+            prev_frame = initial_frame
             for t in range(max_episode_length):
-                tmp_action = self.policy.select_action(self.calc_q_values(phi_state,self.q_network))
-                nextstate, reward, is_terminal, debug_info = env.step(tmp_action)
-                phi_nextstate = self.preprocessor.process_state_for_network(nextstate)
-                self.memory.append(phi_state, tmp_action, reward, phi_nextstate, is_terminal)
-                self.update_policy(target_q)
-                phi_state=phi_nextstate
+                _tmp = self.calc_q_values(np.asarray([prev_phi_state_n,]), self.q_network)
+                _action = self.policy.select_action(_tmp[0], True)
+                next_frame, reward, is_terminal, debug_info = env.step(_action)
+                reward = self.preprocessor.process_reward(reward)
+                phi_state_n = self.preprocessor.process_state_for_network(next_frame, prev_frame)
+                phi_state_m = self.preprocessor.process_state_for_memory(next_frame, prev_frame)
+                self.memory.append(prev_phi_state_m, _action, reward, phi_state_m, is_terminal)
+                
+                if self.memory.current_size > self.num_burn_in:
+                    loss.append(self.update_policy(target_q))
+                    print(loss[-1])
+
+                prev_frame = next_frame
+                prev_phi_state_m = phi_state_m
+                prev_phi_state_n = phi_state_n
                 counter += 1
                 if counter == self.target_update_freq:
                     counter = 0
                     config = Model.get_config(self.q_network)
                     target_q = Model.from_config(config)
-
 
     def evaluate(self, env, num_episodes, max_episode_length=None):
         """Test your agent with a provided environment.

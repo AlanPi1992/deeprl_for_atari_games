@@ -161,8 +161,7 @@ class LinearDecayGreedyEpsilonPolicy(Policy):
             self.epsilon_greedy_policy.epsilon -= self.decay_stepsize
         else:
             self.epsilon_greedy_policy.epsilon = 0.05
-        self.epsilon_greedy_policy.select_action(q_values)
-
+        return self.epsilon_greedy_policy.select_action(q_values)
 
     def reset(self):
         """Start the decay over at the start value."""

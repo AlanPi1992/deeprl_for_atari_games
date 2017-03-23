@@ -161,7 +161,7 @@ class PreprocessorSequence(Preprocessor):
         """Clip reward between -1 and 1."""
         if reward > 0:
             return 1
-        elif reward<0:
+        elif reward < 0:
             return -1
         else:
             return 0

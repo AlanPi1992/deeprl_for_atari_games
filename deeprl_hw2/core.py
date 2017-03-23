@@ -215,6 +215,7 @@ class ReplayMemory:
         """
         self.buffer_size = max_size
         self.window_length = window_length
+        self.current_size = 0
         self.buffer = [0 for i in range(max_size)]
         self.index = 0 # track the index where the next sample should be inserted
 
@@ -222,6 +223,8 @@ class ReplayMemory:
         _sample = Sample(state, action, reward, next_state, is_terminal)
         self.buffer[self.index] = _sample
         self.index += 1
+        if self.current_size < self.buffer_size:
+            self.current_size += 1
         if self.index == self.buffer_size:
             self.index = 0
 
@@ -230,7 +233,7 @@ class ReplayMemory:
 
     def sample(self, batch_size, indexes=None):
         if indexes == None:
-            indexes = random.choice(self.buffer_size, batch_size, replace=False)
+            indexes = random.choice(self.current_size, batch_size, replace=False)
         random_samples = []
         for _id in indexes:
             random_samples.append(self.buffer[_id])
@@ -239,3 +242,4 @@ class ReplayMemory:
     def clear(self):
         self.buffer = [0 for i in range(self.buffer_size)]
         self.index = 0
+        self.current_size = 0
