@@ -63,7 +63,7 @@ class Preprocessor:
     episode.
     """
 
-    def process_state_for_network(self, state):
+    def process_state_for_network(self, state, prev_state):
         """Preprocess the given state before giving it to the network.
 
         Should be called just before the action is selected.
@@ -90,7 +90,7 @@ class Preprocessor:
 
         return state
 
-    def process_state_for_memory(self, state):
+    def process_state_for_memory(self, state, prev_state):
         """Preprocess the given state before giving it to the replay memory.
 
         Should be called just before appending this to the replay memory.

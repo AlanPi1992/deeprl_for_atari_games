@@ -79,8 +79,7 @@ class DQNAgent:
         keras.optimizers.Optimizer class. Specifically the Adam
         optimizer.
         """
-        self.q_network.compile(optimizer = optimizer,
-                               loss = loss_func)
+        self.q_network.compile(optimizer = optimizer, loss = loss_func)
 
     def calc_q_values(self, state, q_net):
         """Given a state (or batch of states) calculate the Q-values.
@@ -143,7 +142,6 @@ class DQNAgent:
         y=self.calc_q_values(x,self.q_network) #reserve the order in mini_batch
         tmp_action = np.argmax(y) #action number consistent with the index?
 
-
         for _sample in mini_batch:
 
             if _sample.is_terminal:
@@ -154,13 +152,6 @@ class DQNAgent:
 
         train_loss = self.q_network.train_on_batch(x, y)
         return train_loss
-
-
-
-
-
-
-
 
     def fit(self, env, num_iterations, max_episode_length=None):
         """Fit your model to the provided environment.
@@ -192,14 +183,13 @@ class DQNAgent:
         config = Model.get_config(self.q_network)
         target_q = Model.from_config(config)
 
-        for episode in range(max_episode_length):
-
+        for episode in range(num_iterations):
             initial_state = env.reset()
             self.preprocessor.reset()
-            phi_state = self.preprocessor.process_state_for_network(initial_state)# preprocess the state, reset history preprocessor
+            phi_state_n = self.preprocessor.process_state_for_network(initial_state)
+            phi_state_m = self.preprocessor.process_state_for_memory(initial_state)
             counter = 0
-
-            for t in range(num_iterations):
+            for t in range(max_episode_length):
                 tmp_action = self.policy.select_action(self.calc_q_values(phi_state,self.q_network))
                 nextstate, reward, is_terminal, debug_info = env.step(tmp_action)
                 phi_nextstate = self.preprocessor.process_state_for_network(nextstate)

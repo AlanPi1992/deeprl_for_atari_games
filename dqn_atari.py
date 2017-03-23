@@ -7,7 +7,7 @@ import time
 
 import numpy as np
 import tensorflow as tf
-from keras.layers import (Activation, Convolution2D, Dense, Flatten, Input,
+from keras.layers import (Activation, Convolution2D, Dense, Flatten, Input, Dropout,
                           Permute)
 from keras.models import Model
 from keras.optimizers import Adam
@@ -17,7 +17,7 @@ from PIL import Image
 import deeprl_hw2 as tfrl
 from deeprl_hw2.dqn import DQNAgent
 from deeprl_hw2.objectives import mean_huber_loss
-
+from deeprl_hw2.preprocessors import PreprocessorSequence
 
 def create_model(window, input_shape, num_actions,
                  model_name='q_network'):  # noqa: D103
@@ -50,10 +50,12 @@ def create_model(window, input_shape, num_actions,
     """
     with tf.name_scope(model_name):
         input_img = Input(shape = (window,) + input_shape)
-        conv1 = Convolution2D(32, (8,8), strides=4, padding='same', activation='relu')(input_img)
-        conv2 = Convolution2D(64, (4,4), strides=2, padding='same', activation='relu')(conv1)
+        conv1 = Convolution2D(32, (8,8), strides=4, padding='same', activation='relu')(input_img) #dropout
+        _conv1 = Dropout(0.2)(conv1)
+        conv2 = Convolution2D(64, (4,4), strides=2, padding='same', activation='relu')(_conv1)
+        _conv2 = Dropout(0.2)(conv2)
         # conv2 = Convolution2D(64, (3,3), strides=1, padding='same', activation='relu')(conv2)
-        full1 = Dense(512, activation='relu')(conv2)
+        full1 = Dense(512, activation='relu')(_conv2)
         out = Dense(num_actions)(full1)
         model = Model(input = input_img, output = out)
     return model
@@ -109,27 +111,45 @@ def main():  # noqa: D103
     # here is where you should start up a session,
     # create your DQN agent, create your model, etc.
     # then you can run your fit method.
+
+    # Make the environment
     env = gym.make(args.env)
     input('Hit to begin training...')
 
-    env.action_space
+    # Create a Q network
+    num_actions=env.action_space.n
+    q_net = create_model(4, (84, 84), num_actions, model_name='target_q_network')
 
-
-
-
-    target_Q_net = create_model(4, (84, 84), num_actions, model_name='target_q_network')
-
-
+    # Initialize a preporcessor sequence object
     atari_preprocessor = tfrl.preprocessors.AtariPreprocessor((84, 84))
-    _out = atari_preprocessor.process_state_for_memory(initial_state)
+    history_preprocessor = tfrl.preprocessors.HistoryPreprocessor(4)
+    preprocessor_seq = tfrl.preprocessors.PreprocessorSequence(atari_preprocessor, history_preprocessor)
 
-    # history_preprocessor = tfrl.preprocessors.HistoryPreprocessor(4)
+    # Initialize a replay memory
+    replay_memory = tfrl.core.ReplayMemory(1e6, 4)
+
+    # Initialize a policy
+    _policy = tfrl.policy.GreedyEpsilonPolicy(0.05)
+    policy = tfrl.policy.LinearDecayGreedyEpsilonPolicy(_policy, 1, 0.05, 1e6/4)
+
+    # Initialize a DQNAgent
+    DQNAgent = tfrl.dqn.DQNAgent(q_net, preprocessor_seq, replay_memory, policy, gamma=0.99,
+                                 target_update_freq=1e4, num_burn_in=1e4, train_freq=1e4, batch_size=32)
+
+    # Compiling, Training, Test
+    mean_huber = tfrl.objectives.mean_huber_loss()
+    DQNAgent.compile(optimizer='Adam', loss_func=mean_huber)
+    DQNAgent.fit(env, 1e7, 1e5)
+    DQNAgent.evaluate(env, 20)
+
+
+    #_out = atari_preprocessor.process_state_for_memory(initial_state)
     # print(history_preprocessor.h_state)
-    # _out_h = history_preprocessor.process_state_for_network(_out)
+    #_out_h = history_preprocessor.process_state_for_network(_out)
     # print(_out_h)
-    # _out_h = history_preprocessor.process_state_for_network(_out)
+    #_out_h = history_preprocessor.process_state_for_network(_out)
     # print(_out_h)
-    # history_preprocessor.reset()
+    history_preprocessor.reset()
     # print(history_preprocessor.h_state)
 
     # _img = Image.fromarray(_out)
