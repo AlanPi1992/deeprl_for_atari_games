@@ -9,7 +9,7 @@
 # if the job is still running after 10 hours, it will be automatically killed.
 
 set -x  # echo commands to stdout
-set -u  # throw an error if unset variable referenced
+# set -u  # throw an error if unset variable referenced
 set -e  # exit on error
 
 # helper vars.
