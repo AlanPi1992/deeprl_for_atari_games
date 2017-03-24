@@ -117,42 +117,42 @@ def main():  # noqa: D103
 
     # Make the environment
     env = gym.make(args.env)
-    input('**************************  Hit to begin training...  ******************************')
+    # input('**************************  Hit to begin training...  ******************************')
 
     # Create a Q network
     num_actions = env.action_space.n
     q_net = create_model(4, (84, 84), num_actions, model_name='Deep_Q_Net_with_Replay_Memory_and_Target_Fixing')
-    print('======================== Keras Q-network model is created. =========================')
+    # print('======================== Keras Q-network model is created. =========================')
 
     # Initialize a preporcessor sequence object
     atari_preprocessor = tfrl.preprocessors.AtariPreprocessor((84, 84))
     history_preprocessor = tfrl.preprocessors.HistoryPreprocessor(4)
     preprocessor_seq = tfrl.preprocessors.PreprocessorSequence(atari_preprocessor, history_preprocessor)
-    print('======================== Preprocessor object is created. =========================')
+    # print('======================== Preprocessor object is created. =========================')
 
     # Initialize a replay memory
     replay_memory = tfrl.core.ReplayMemory(1000000, 4)
-    print('======================== Replay_memory object is created. =========================')
+    # print('======================== Replay_memory object is created. =========================')
 
     # Initialize a policy
     _policy = tfrl.policy.GreedyEpsilonPolicy(0.05, num_actions)
     policy = tfrl.policy.LinearDecayGreedyEpsilonPolicy(_policy, 1, 0.1, 1000000)
-    print('======================== (linear-decay) Eps-Greedy Policy object is created. =========================')
+    # print('======================== (linear-decay) Eps-Greedy Policy object is created. =========================')
 
     # Initialize a DQNAgent
     DQNAgent = tfrl.dqn.DQNAgent(q_net, preprocessor_seq, replay_memory, policy, gamma=0.99,
                                  target_update_freq=10000, num_burn_in=50000, train_freq=4, 
                                  batch_size=32, window_size=4)
-    print('======================== DQN agent is created. =========================')
+    # print('======================== DQN agent is created. =========================')
 
     # Compiling, Training, Test
-    print('======================== Model compilation begin! =========================')
+    # print('======================== Model compilation begin! =========================')
     adam = Adam(lr=0.0001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
     q_net.compile(optimizer=adam, loss=mean_huber_loss)
-    print('======================== Model compilation finished! =========================')
-    print('======================== Model training begin! =========================')
+    # print('======================== Model compilation finished! =========================')
+    # print('======================== Model training begin! =========================')
     DQNAgent.fit(env, 500000, 100000)
-    print('======================== Model training finished! =========================')
+    # print('======================== Model training finished! =========================')
     # print('======================== Model evaluateion begin! =========================')
     # DQNAgent.evaluate(env, 20)
     # print('======================== Model evaluateion finished! =========================')
