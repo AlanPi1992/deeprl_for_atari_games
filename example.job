@@ -13,7 +13,7 @@ set -u  # throw an error if unset variable referenced
 set -e  # exit on error
 
 # helper vars.
-HOME=/home/$USER/
+HOME=/home/$USER
 PYLON2=/pylon2/$(id -gn)/$USER
 PYLON5=/pylon5/$(id -gn)/$USER
 
