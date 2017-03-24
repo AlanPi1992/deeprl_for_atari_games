@@ -225,7 +225,7 @@ class DQNAgent:
                         if evaluate_counter % 1000 == 0:
                             score.append(self.evaluate(env, 10, max_episode_length))
                             print("The average total score for 10 episodes after ", evaluate_counter, " updates is ", score[-1])
-                        print("The loss after ", evaluate_counter, " updates is: ", loss[-1])
+                            print("The loss after ", evaluate_counter, " updates is: ", loss[-1])
                     # Update the target Q network every self.target_update_freq steps
                     targetQ_update_counter += 1
                     if targetQ_update_counter == self.target_update_freq:

@@ -141,7 +141,7 @@ def main():  # noqa: D103
 
     # Initialize a DQNAgent
     DQNAgent = tfrl.dqn.DQNAgent(q_net, preprocessor_seq, replay_memory, policy, gamma=0.99,
-                                 target_update_freq=10000, num_burn_in=50000, train_freq=4, 
+                                 target_update_freq=10000, num_burn_in=100000, train_freq=4, 
                                  batch_size=32, window_size=4)
     # print('======================== DQN agent is created. =========================')
 
@@ -151,7 +151,8 @@ def main():  # noqa: D103
     q_net.compile(optimizer=adam, loss=mean_huber_loss)
     # print('======================== Model compilation finished! =========================')
     # print('======================== Model training begin! =========================')
-    DQNAgent.fit(env, 500000, 100000)
+    DQNAgent.fit(env, 5000000, 100000)
+    DQNAgent.q_network.save('~/deeprl_for_atari_games/train1.h5')
     # print('======================== Model training finished! =========================')
     # print('======================== Model evaluateion begin! =========================')
     # DQNAgent.evaluate(env, 20)
