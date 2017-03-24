@@ -12,7 +12,7 @@ set -x  # echo commands to stdout
 set -u  # throw an error if unset variable referenced
 set -e  # exit on error
 
-# helper vars
+# helper vars.
 PYLON2=/pylon2/$(id -gn)/$USER
 PYLON5=/pylon5/$(id -gn)/$USER
 
