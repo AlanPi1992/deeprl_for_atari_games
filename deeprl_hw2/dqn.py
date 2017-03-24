@@ -221,10 +221,10 @@ class DQNAgent:
                         loss.append(self.update_policy(target_q))
                         # print(self.calc_q_values(np.asarray([prev_phi_state_n,]), self.q_network)[0])
                         evaluate_counter += 1
-                        # if evaluate_counter % 10000 == 0:
-                            # score.append(self.evaluate(env, 10, max_episode_length))
-                            # print("The average total score for 10 episodes after ", evaluate_counter, " updates is ", score[-1])
-                        print("The loss after ", evaluate_counter, " updates is: ", loss[-1])
+                        if evaluate_counter % 10000 == 0:
+                            score.append(self.evaluate(env, 10, max_episode_length))
+                            print("The average total score for 10 episodes after ", evaluate_counter, " updates is ", score[-1])
+                            print("The loss after ", evaluate_counter, " updates is: ", loss[-1])
                     # Update the target Q network every self.target_update_freq steps
                     targetQ_update_counter += 1
                     if targetQ_update_counter == self.target_update_freq:

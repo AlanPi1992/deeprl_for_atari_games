@@ -142,7 +142,7 @@ def main():  # noqa: D103
     # Initialize a DQNAgent
     DQNAgent = tfrl.dqn.DQNAgent(q_net, preprocessor_seq, replay_memory, policy, gamma=0.99,
                                  target_update_freq=10000, num_burn_in=50000, train_freq=4, 
-                                 batch_size=32, window_size = 4)
+                                 batch_size=32, window_size=4)
     print('======================== DQN agent is created. =========================')
 
     # Compiling, Training, Test
