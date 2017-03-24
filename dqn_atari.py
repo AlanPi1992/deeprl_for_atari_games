@@ -53,13 +53,13 @@ def create_model(window, input_shape, num_actions,
     with tf.name_scope(model_name):
         input_img = Input(shape = (window,) + input_shape) # Input shape = (4, 84, 84)
         conv1 = Convolution2D(32, (8,8), strides=4, padding='same', activation='relu')(input_img)
-        _conv1 = Dropout(0.2)(conv1)
-        conv2 = Convolution2D(64, (4,4), strides=2, padding='same', activation='relu')(_conv1)
-        _conv2 = Dropout(0.2)(conv2)
+        # conv1 = Dropout(0.2)(conv1)
+        conv2 = Convolution2D(64, (4,4), strides=2, padding='same', activation='relu')(conv1)
+        # conv2 = Dropout(0.2)(conv2)
         # conv2 = Convolution2D(64, (3,3), strides=1, padding='same', activation='relu')(conv2)
-        flat = Flatten()(_conv2) # Flatten the convoluted hidden layers before full-connected layers
-        full1 = Dense(512, activation='relu')(flat)
-        out = Dense(num_actions)(full1) # output layer has node number = num_actions
+        flat = Flatten()(conv2) # Flatten the convoluted hidden layers before full-connected layers
+        full = Dense(512, activation='relu')(flat)
+        out = Dense(num_actions)(full) # output layer has node number = num_actions
         model = Model(input = input_img, output = out)
     return model
 

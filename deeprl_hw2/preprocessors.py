@@ -23,7 +23,7 @@ class HistoryPreprocessor(Preprocessor):
 
     """
 
-    def __init__(self, history_length=1):
+    def __init__(self, history_length):
         self.h_length = history_length
         self.h_state_for_network = np.zeros((self.h_length, 84, 84), dtype=np.float32)
         self.h_state_for_memory = np.zeros((self.h_length, 84, 84), dtype=np.uint8)

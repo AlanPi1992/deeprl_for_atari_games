@@ -1,3 +1,4 @@
 /DeepRL_Homework_2.egg-info/
 /deeprl_hw2_env/
-/deeprl_hw2/__pycache__/
+/deeprl_hw2/*
+!/deeprl_hw2/*.py
