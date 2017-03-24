@@ -13,8 +13,8 @@ set -u  # throw an error if unset variable referenced
 set -e  # exit on error
 
 # helper vars
-PYLON1=/pylon1/$(id -gn)/$USER
 PYLON2=/pylon2/$(id -gn)/$USER
+PYLON5=/pylon5/$(id -gn)/$USER
 
 module load cuda/8.0
 
@@ -24,7 +24,7 @@ module load python3
 
 # switch to pylon1
 # NOTE: Files in this directory are deleted when 30 days old
-pushd $PYLON1
+pushd $PYLON5
 
 # turn on the virtualenv
 source $/home/thupxd/deeprl_for_atari_games/deeprl_hw2_gpu/bin/activate

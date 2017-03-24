@@ -151,7 +151,7 @@ def main():  # noqa: D103
     q_net.compile(optimizer=adam, loss=mean_huber_loss)
     print('======================== Model compilation finished! =========================')
     print('======================== Model training begin! =========================')
-    DQNAgent.fit(env, 5000000, 100000)
+    DQNAgent.fit(env, 500000, 100000)
     print('======================== Model training finished! =========================')
     # print('======================== Model evaluateion begin! =========================')
     # DQNAgent.evaluate(env, 20)
