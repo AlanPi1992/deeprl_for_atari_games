@@ -234,10 +234,10 @@ class ReplayMemory:
     def sample(self, batch_size, indexes=None):
         if indexes == None:
             indexes = random.choice(self.current_size, batch_size, replace=False)
-        random_samples = []
-        for _id in indexes:
-            random_samples.append(self.buffer[_id])
-        return random_samples
+        # random_samples = []
+        # for _id in indexes:
+            # random_samples.append(self.buffer[_id])
+        return indexes
 
     def clear(self):
         self.buffer = [0 for i in range(self.buffer_size)]

@@ -145,17 +145,17 @@ class PreprocessorSequence(Preprocessor):
         _state = self.atari_p.process_state_for_network(state, prev_state) # np.ndarray (84, 84) float32
         return self.history_p.process_state_for_network(_state) # np.ndarray (4, 84, 84) float32
 
-    def process_batch(self, samples):
-        """The batches from replay memory will be uint8, convert to float32.
+    # def process_batch(self, samples):
+    #     """The batches from replay memory will be uint8, convert to float32.
 
-        Same as process_state_for_network but works on a batch of
-        samples from the replay memory. Meaning you need to convert
-        both state and next state values.
-        """
-        for _item in samples:
-            _item.state = _item.state.astype(np.float32)
-            _item.next_state = _item.next_state.astype(np.float32)
-        return samples
+    #     Same as process_state_for_network but works on a batch of
+    #     samples from the replay memory. Meaning you need to convert
+    #     both state and next state values.
+    #     """
+    #     for _item in samples:
+    #         _item.state = _item.state.astype(np.float32)
+    #         _item.next_state = _item.next_state.astype(np.float32)
+    #     return samples
 
     def process_reward(self, reward):
         """Clip reward between -1 and 1."""

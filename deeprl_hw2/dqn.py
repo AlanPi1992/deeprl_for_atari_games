@@ -134,22 +134,23 @@ class DQNAgent:
         You might want to return the loss and other metrics as an
         output. They can help you monitor how training is going.
         """
-        mini_batch = self.preprocessor.process_batch(self.memory.sample(self.batch_size))
-        
+        # mini_batch = self.preprocessor.process_batch(self.memory.sample(self.batch_size))
+        mini_batch_index = self.memory.sample(self.batch_size)
+
         x = []
-        for _sample in mini_batch:
-            x.append(_sample.state)
+        for _sample in mini_batch_index:
+            x.append(self.memory.buffer[_sample].state.astype(np.float32))
         x = np.asarray(x)
         y = self.calc_q_values(x, self.q_network) #reserve the order in mini_batch
         tmp_action = np.argmax(y, axis = 1)
 
         counter = 0
-        for _sample in mini_batch:
-            if _sample.is_terminal:
-                y[counter, tmp_action[counter]] = _sample.reward
+        for _sample in mini_batch_index:
+            if self.memory.buffer[_sample].is_terminal:
+                y[counter, tmp_action[counter]] = self.memory.buffer[_sample].reward
             else:
-                _tmp = self.calc_q_values(np.asarray([_sample.next_state,]), target_q)
-                y[counter, tmp_action[counter]] = _sample.reward + self.gamma * max(_tmp[0])
+                _tmp = self.calc_q_values(np.asarray([self.memory.buffer[_sample].next_state.astype(np.float32),]), target_q)
+                y[counter, tmp_action[counter]] = self.memory.buffer[_sample].reward + self.gamma * max(_tmp[0])
             counter += 1
 
         train_loss = self.q_network.train_on_batch(x, y)
@@ -221,10 +222,10 @@ class DQNAgent:
                         loss.append(self.update_policy(target_q))
                         # print(self.calc_q_values(np.asarray([prev_phi_state_n,]), self.q_network)[0])
                         evaluate_counter += 1
-                        if evaluate_counter % 10000 == 0:
+                        if evaluate_counter % 1000 == 0:
                             score.append(self.evaluate(env, 10, max_episode_length))
                             print("The average total score for 10 episodes after ", evaluate_counter, " updates is ", score[-1])
-                            print("The loss after ", evaluate_counter, " updates is: ", loss[-1])
+                        print("The loss after ", evaluate_counter, " updates is: ", loss[-1])
                     # Update the target Q network every self.target_update_freq steps
                     targetQ_update_counter += 1
                     if targetQ_update_counter == self.target_update_freq:

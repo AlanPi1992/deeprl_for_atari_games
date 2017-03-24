@@ -13,6 +13,7 @@ set -u  # throw an error if unset variable referenced
 set -e  # exit on error
 
 # helper vars.
+HOME=/home/$USER/
 PYLON2=/pylon2/$(id -gn)/$USER
 PYLON5=/pylon5/$(id -gn)/$USER
 
@@ -27,10 +28,10 @@ module load python3
 pushd $PYLON5
 
 # turn on the virtualenv
-source $/home/thupxd/deeprl_for_atari_games/deeprl_hw2_gpu/bin/activate
+source $HOME/deeprl_for_atari_games/deeprl_hw2_gpu/bin/activate
 
 # run the experiment script
-python3.5 $/home/thupxd/deeprl_for_atari_games/dqn_atari.py
+python3.5 $HOME/deeprl_for_atari_games/dqn_atari.py
 
 # turn off the virtualenv
 deactivate
