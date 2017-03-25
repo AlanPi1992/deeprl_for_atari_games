@@ -219,7 +219,7 @@ class DQNAgent:
                 # Save the trained Q-net at 4 check points
                 Q_update_counter += 1
                 if Q_update_counter == 1:
-                    self.q_network.save('~/deeprl_for_atari_games/' + env_name + '-train1-'+'0of3.h5')
+                    self.q_network.save('/home/thupxd/deeprl_for_atari_games/' + env_name + '-train1-'+'0of3.h5')
                 elif Q_update_counter == num_iterations // 3:
                     self.q_network.save('~/deeprl_for_atari_games/' + env_name + '-train1-'+'1of3.h5')
                 elif Q_update_counter == num_iterations // 3 * 2:
