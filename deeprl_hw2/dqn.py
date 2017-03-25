@@ -221,11 +221,11 @@ class DQNAgent:
                 if Q_update_counter == 1:
                     self.q_network.save('/home/thupxd/deeprl_for_atari_games/' + env_name + '-train1-'+'0of3.h5')
                 elif Q_update_counter == num_iterations // 3:
-                    self.q_network.save('~/deeprl_for_atari_games/' + env_name + '-train1-'+'1of3.h5')
+                    self.q_network.save('/home/thupxd/deeprl_for_atari_games/' + env_name + '-train1-'+'1of3.h5')
                 elif Q_update_counter == num_iterations // 3 * 2:
-                    self.q_network.save('~/deeprl_for_atari_games/' + env_name + '-train1-'+'2of3.h5')
+                    self.q_network.save('/home/thupxd/deeprl_for_atari_games/' + env_name + '-train1-'+'2of3.h5')
                 elif Q_update_counter == num_iterations:
-                    self.q_network.save('~/deeprl_for_atari_games/' + env_name + '-train1-'+'3of3.h5')
+                    self.q_network.save('/home/thupxd/deeprl_for_atari_games/' + env_name + '-train1-'+'3of3.h5')
 
                 # Update the Q net using minibatch from replay memory and update the target Q net
                 if self.memory.current_size > self.num_burn_in:
