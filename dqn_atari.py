@@ -152,7 +152,7 @@ def main():  # noqa: D103
     # print('======================== Model compilation finished! =========================')
     # print('======================== Model training begin! =========================')
     DQNAgent.fit(env, 5000000, 100000)
-    DQNAgent.q_network.save('~/deeprl_for_atari_games/train1.h5')
+    DQNAgent.q_network.save('~/deeprl_for_atari_games/Enduro-train1.h5')
     # print('======================== Model training finished! =========================')
     # print('======================== Model evaluateion begin! =========================')
     # DQNAgent.evaluate(env, 20)
