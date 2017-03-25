@@ -141,7 +141,7 @@ class DQNAgent:
         for _sample in mini_batch_index:
             x.append(self.memory.buffer[_sample].state.astype(np.float32))
         x = np.asarray(x)
-        y = self.calc_q_values(x, self.q_network) #reserve the order in mini_batch
+        y = self.calc_q_values(x, self.q_network) # reserve the order in mini_batch
         tmp_action = np.argmax(y, axis = 1)
 
         counter = 0
@@ -156,7 +156,7 @@ class DQNAgent:
         train_loss = self.q_network.train_on_batch(x, y)
         return train_loss
 
-    def fit(self, env, num_iterations, max_episode_length=None):
+    def fit(self, env, num_iterations, max_episode_length=None, env_name):
         """Fit your model to the provided environment.
 
         Its a good idea to print out things like loss, average reward,
@@ -197,13 +197,14 @@ class DQNAgent:
                 break
             # For every new episode, reset the environment and the preprocessor
             episode_counter += 1
-            print("********  Begin the training episode: ", episode_counter, ", currently ", Q_update_counter, " step  *******************")
+            print("********  0 Begin the training episode: ", episode_counter, ", currently ", Q_update_counter, " step  *******************")
             initial_frame = env.reset()
             self.preprocessor.reset()
             prev_phi_state_n = self.preprocessor.process_state_for_network(initial_frame, initial_frame)
             prev_phi_state_m = self.preprocessor.process_state_for_memory(initial_frame, initial_frame)
             prev_frame = initial_frame
             for t in range(max_episode_length):
+                # Generate samples according to different policy
                 if self.memory.current_size > self.num_burn_in:
                     _tmp = self.calc_q_values(np.asarray([prev_phi_state_n,]), self.q_network)
                     _action = self.policy.select_action(_tmp[0], True)
@@ -215,17 +216,28 @@ class DQNAgent:
                 phi_state_m = self.preprocessor.process_state_for_memory(next_frame, prev_frame)
                 self.memory.append(prev_phi_state_m, _action, reward, phi_state_m, is_terminal)
                 
+                # Save the trained Q-net at 4 check points
                 Q_update_counter += 1
+                if Q_update_counter == 1:
+                    self.q_network.save('~/deeprl_for_atari_games/' + env_name + '-train1-'+'0of3.h5')
+                elif Q_update_counter == num_iterations // 3:
+                    self.q_network.save('~/deeprl_for_atari_games/' + env_name + '-train1-'+'1of3.h5')
+                elif Q_update_counter == num_iterations // 3 * 2:
+                    self.q_network.save('~/deeprl_for_atari_games/' + env_name + '-train1-'+'2of3.h5')
+                elif Q_update_counter == num_iterations:
+                    self.q_network.save('~/deeprl_for_atari_games/' + env_name + '-train1-'+'3of3.h5')
+
+                # Update the Q net using minibatch from replay memory and update the target Q net
                 if self.memory.current_size > self.num_burn_in:
                     # Update the Q network every self.train_freq steps
                     if Q_update_counter % self.train_freq == 0:
                         loss.append(self.update_policy(target_q))
                         # print(self.calc_q_values(np.asarray([prev_phi_state_n,]), self.q_network)[0])
                         evaluate_counter += 1
-                        if evaluate_counter % 1000 == 0:
-                            score.append(self.evaluate(env, 10, max_episode_length))
-                            print("The average total score for 10 episodes after ", evaluate_counter, " updates is ", score[-1])
-                            print("The loss after ", evaluate_counter, " updates is: ", loss[-1])
+                        if evaluate_counter % 10000 == 0:
+                            score.append(self.evaluate(env, 20, max_episode_length))
+                            print("1 The average total score for 10 episodes after ", evaluate_counter, " updates is ", score[-1])
+                            print("2 The loss after ", evaluate_counter, " updates is: ", loss[-1])
                     # Update the target Q network every self.target_update_freq steps
                     targetQ_update_counter += 1
                     if targetQ_update_counter == self.target_update_freq:
@@ -254,6 +266,7 @@ class DQNAgent:
         You can also call the render function here if you want to
         visually inspect your policy.
         """
+
         # Run the policy for 20 episodes and calculate the mean total reward (final score of game)
         mean_reward = 0
         for episode in range(num_episodes):
