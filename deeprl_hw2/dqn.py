@@ -156,7 +156,7 @@ class DQNAgent:
         train_loss = self.q_network.train_on_batch(x, y)
         return train_loss
 
-    def fit(self, env, num_iterations, max_episode_length=None, env_name):
+    def fit(self, env, env_name, num_iterations, max_episode_length=None):
         """Fit your model to the provided environment.
 
         Its a good idea to print out things like loss, average reward,
