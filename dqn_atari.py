@@ -153,9 +153,7 @@ def main():  # noqa: D103
     # print('======================== Model training begin! =========================')
     DQNAgent.fit(env, args.env, 5000000, 100000)
     # print('======================== Model training finished! =========================')
-    # print('======================== Model evaluateion begin! =========================')
-    # DQNAgent.evaluate(env, 20)
-    # print('======================== Model evaluateion finished! =========================')
+    
 
 
     # _img = Image.fromarray(_out)

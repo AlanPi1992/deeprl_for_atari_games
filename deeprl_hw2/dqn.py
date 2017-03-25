@@ -3,6 +3,7 @@
 import keras
 from keras.models import Model
 import numpy as np
+import gym
 
 class DQNAgent:
     """Class implementing DQN.
@@ -234,9 +235,9 @@ class DQNAgent:
                         loss.append(self.update_policy(target_q))
                         # print(self.calc_q_values(np.asarray([prev_phi_state_n,]), self.q_network)[0])
                         evaluate_counter += 1
-                        if evaluate_counter % 10000 == 0:
-                            score.append(self.evaluate(env, 20, max_episode_length))
-                            print("1 The average total score for 10 episodes after ", evaluate_counter, " updates is ", score[-1])
+                        if evaluate_counter % 50000 == 0:
+                            score.append(self.evaluate(env_name, 20, max_episode_length))
+                            print("1 The average total score for 20 episodes after ", evaluate_counter, " updates is ", score[-1])
                             print("2 The loss after ", evaluate_counter, " updates is: ", loss[-1])
                     # Update the target Q network every self.target_update_freq steps
                     targetQ_update_counter += 1
@@ -253,7 +254,7 @@ class DQNAgent:
 
 
 
-    def evaluate(self, env, num_episodes, max_episode_length=None):
+    def evaluate(self, env_name, num_episodes, max_episode_length=None):
         """Test your agent with a provided environment.
         
         You shouldn't update your network parameters here. Also if you
@@ -268,6 +269,7 @@ class DQNAgent:
         """
 
         # Run the policy for 20 episodes and calculate the mean total reward (final score of game)
+        env = gym.make(env_name)
         mean_reward = 0
         for episode in range(num_episodes):
             initial_frame = env.reset()
