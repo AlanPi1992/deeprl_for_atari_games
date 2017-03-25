@@ -18,7 +18,7 @@ from PIL import Image
 
 import deeprl_hw2 as tfrl
 from deeprl_hw2.dqn import DQNAgent
-from deeprl_hw2.objectives import mean_huber_loss
+from deeprl_hw2.objectives import mean_huber_loss, mean_huber_loss_duel
 from deeprl_hw2.preprocessors import PreprocessorSequence
 
 def create_model(window, input_shape, num_actions,
