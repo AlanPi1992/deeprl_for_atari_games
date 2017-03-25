@@ -12,6 +12,7 @@ from keras.layers import (Activation, Convolution2D, Dense, Flatten, Input, Drop
 from keras.models import Model
 from keras.optimizers import Adam
 from keras import losses
+from keras import backend as K
 import gym
 from PIL import Image
 
@@ -61,7 +62,7 @@ def create_model(window, input_shape, num_actions,
         flat = Flatten()(conv2) # Flatten the convoluted hidden layers before full-connected layers
         full = Dense(512, activation='relu')(flat)
         out = Dense(num_actions+1)(full) # output layer has node number = num_actions
-        z = Lambda(lambda a: tf.expand_dims(a[:, 0], axis=-1) + a[:, 1:] - tf.mean(a[:, 1:], keepdims=True), 
+        z = Lambda(lambda a: K.expand_dims(a[:, 0], axis=-1) + a[:, 1:] - K.mean(a[:, 1:], keepdims=True), 
             output_shape=(num_actions,))(out)
         model = Model(input = input_img, output = z)
     return model
