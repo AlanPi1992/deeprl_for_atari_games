@@ -4,6 +4,7 @@ import keras
 from keras.models import Model
 import numpy as np
 import gym
+import pickle
 
 class DQNAgent:
     """Class implementing DQN.
@@ -157,7 +158,7 @@ class DQNAgent:
         train_loss = self.q_network.train_on_batch(x, y)
         return train_loss
 
-    def fit(self, env, env_name, num_iterations, max_episode_length=None):
+    def fit(self, env, env_name, output_add, num_iterations, max_episode_length=None):
         """Fit your model to the provided environment.
 
         Its a good idea to print out things like loss, average reward,
@@ -189,7 +190,9 @@ class DQNAgent:
         target_q = Model.from_config(config)
         loss = []
         score = []
+        episode_len = []
         Q_update_counter = 0
+        old_Q_update_counter = 0
         targetQ_update_counter = 0
         evaluate_counter = 0
         episode_counter = 0
@@ -220,24 +223,25 @@ class DQNAgent:
                 # Save the trained Q-net at 4 check points
                 Q_update_counter += 1
                 if Q_update_counter == 1:
-                    self.q_network.save('/home/thupxd/deeprl_for_atari_games/' + env_name + '-train1-'+'0of3.h5')
+                    self.q_network.save(output_add + '/qnet-0of3.h5')
                 elif Q_update_counter == num_iterations // 3:
-                    self.q_network.save('/home/thupxd/deeprl_for_atari_games/' + env_name + '-train1-'+'1of3.h5')
+                    self.q_network.save(output_add + '/qnet-1of3.h5')
                 elif Q_update_counter == num_iterations // 3 * 2:
-                    self.q_network.save('/home/thupxd/deeprl_for_atari_games/' + env_name + '-train1-'+'2of3.h5')
+                    self.q_network.save(output_add + '/qnet-2of3.h5')
                 elif Q_update_counter == num_iterations:
-                    self.q_network.save('/home/thupxd/deeprl_for_atari_games/' + env_name + '-train1-'+'3of3.h5')
+                    self.q_network.save(output_add + '/qnet-3of3.h5')
 
                 # Update the Q net using minibatch from replay memory and update the target Q net
                 if self.memory.current_size > self.num_burn_in:
                     # Update the Q network every self.train_freq steps
                     if Q_update_counter % self.train_freq == 0:
-                        loss.append(self.update_policy(target_q))
+                        loss.append([Q_update_counter, self.update_policy(target_q)])
                         # print(self.calc_q_values(np.asarray([prev_phi_state_n,]), self.q_network)[0])
                         evaluate_counter += 1
                         if evaluate_counter % 50000 == 0:
-                            score.append(self.evaluate(env_name, 20, max_episode_length))
-                            print("1 The average total score for 20 episodes after ", evaluate_counter, " updates is ", score[-1])
+                        # if evaluate_counter % 2000 == 0:
+                            score.append([Q_update_counter, self.evaluate(env_name, 10, max_episode_length)])
+                            print("1 The average total score for 10 episodes after ", evaluate_counter, " updates is ", score[-1])
                             print("2 The loss after ", evaluate_counter, " updates is: ", loss[-1])
                     # Update the target Q network every self.target_update_freq steps
                     targetQ_update_counter += 1
@@ -251,7 +255,13 @@ class DQNAgent:
                 prev_phi_state_n = phi_state_n
                 if is_terminal:
                     break
-
+            # Store the episode length
+            episode_len.append(Q_update_counter - old_Q_update_counter)
+            old_Q_update_counter = Q_update_counter
+        # Save the episode_len, loss, score into files
+        pickle.dump( episode_len, open( output_add + "/episode_length.p", "wb" ) )
+        pickle.dump( loss, open( output_add + "/loss.p", "wb" ) )
+        pickle.dump( score, open( output_add + "/score.p", "wb" ) )
 
 
     def evaluate(self, env_name, num_episodes, max_episode_length=None):

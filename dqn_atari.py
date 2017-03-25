@@ -105,11 +105,12 @@ def main():  # noqa: D103
     parser = argparse.ArgumentParser(description='Run DQN on Atari Breakout')
     parser.add_argument('--env', default='SpaceInvaders-v0', help='Atari env name')
     parser.add_argument(
-        '-o', '--output', default='atari-v0', help='Directory to save data to')
+        '-o', '--output', default='deepQ', help='Directory to save data to')
     parser.add_argument('--seed', default=703, type=int, help='Random seed')
 
     args = parser.parse_args()
     args.output = get_output_folder(args.output, args.env)
+    os.makedirs(args.output, exist_ok=True)
 
     # here is where you should start up a session,
     # create your DQN agent, create your model, etc.
@@ -141,7 +142,7 @@ def main():  # noqa: D103
 
     # Initialize a DQNAgent
     DQNAgent = tfrl.dqn.DQNAgent(q_net, preprocessor_seq, replay_memory, policy, gamma=0.99,
-                                 target_update_freq=10000, num_burn_in=100000, train_freq=4, 
+                                 target_update_freq=10000, num_burn_in=75000, train_freq=4, 
                                  batch_size=32, window_size=4)
     # print('======================== DQN agent is created. =========================')
 
@@ -151,9 +152,10 @@ def main():  # noqa: D103
     q_net.compile(optimizer=adam, loss=mean_huber_loss)
     # print('======================== Model compilation finished! =========================')
     # print('======================== Model training begin! =========================')
-    DQNAgent.fit(env, args.env, 5000000, 100000)
+    DQNAgent.fit(env, args.env, args.output, 5000000, 100000)
+    # DQNAgent.fit(env, args.env, args.output, 10000, 100000)
     # print('======================== Model training finished! =========================')
-    
+
 
 
     # _img = Image.fromarray(_out)
