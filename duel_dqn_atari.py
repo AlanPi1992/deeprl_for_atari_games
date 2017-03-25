@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Run Atari Environment with Linear-QN."""
+"""Run Atari Environment with duel DQN."""
 import argparse
 import os
 import random
@@ -8,7 +8,7 @@ import time
 import numpy as np
 import tensorflow as tf
 from keras.layers import (Activation, Convolution2D, Dense, Flatten, Input, Dropout,
-                          Permute)
+                          Permute, Lambda)
 from keras.models import Model
 from keras.optimizers import Adam
 from keras import losses
@@ -50,12 +50,20 @@ def create_model(window, input_shape, num_actions,
       The Q-model.
     """
     # Using tensorflow name scope
-    # Create a linear Q-network
+    # Create a dual deep Q-network
     with tf.name_scope(model_name):
         input_img = Input(shape = (window,) + input_shape) # Input shape = (4, 84, 84)
-        flat = Flatten()(input_img) # Flatten the convoluted hidden layers before full-connected layers
-        out = Dense(num_actions)(flat) # output layer has node number = num_actions
-        model = Model(input = input_img, output = out)
+        conv1 = Convolution2D(32, (8,8), strides=4, padding='same', activation='relu')(input_img)
+        # conv1 = Dropout(0.2)(conv1)
+        conv2 = Convolution2D(64, (4,4), strides=2, padding='same', activation='relu')(conv1)
+        # conv2 = Dropout(0.2)(conv2)
+        # conv2 = Convolution2D(64, (3,3), strides=1, padding='same', activation='relu')(conv2)
+        flat = Flatten()(conv2) # Flatten the convoluted hidden layers before full-connected layers
+        full = Dense(512, activation='relu')(flat)
+        out = Dense(num_actions+1)(full) # output layer has node number = num_actions
+        z = Lambda(lambda a: tf.expand_dims(a[:, 0], axis=-1) + a[:, 1:] - tf.mean(a[:, 1:], keepdims=True), 
+            output_shape=(num_actions,))(out)
+        model = Model(input = input_img, output = z)
     return model
 
 
@@ -100,7 +108,7 @@ def main():  # noqa: D103
     parser = argparse.ArgumentParser(description='Run DQN on Atari Breakout')
     parser.add_argument('--env', default='SpaceInvaders-v0', help='Atari env name')
     parser.add_argument(
-        '-o', '--output', default='linearQ', help='Directory to save data to')
+        '-o', '--output', default='duel-deepQ', help='Directory to save data to')
     parser.add_argument('--seed', default=703, type=int, help='Random seed')
 
     args = parser.parse_args()
@@ -117,7 +125,7 @@ def main():  # noqa: D103
 
     # Create a Q network
     num_actions = env.action_space.n
-    q_net = create_model(4, (84, 84), num_actions, model_name='Linear_Q_Net_with_Replay_Memory_and_Target_Fixing')
+    q_net = create_model(4, (84, 84), num_actions, model_name='Duel_Deep_Q_Net')
     # print('======================== Keras Q-network model is created. =========================')
 
     # Initialize a preporcessor sequence object
@@ -144,7 +152,7 @@ def main():  # noqa: D103
     # Compiling, Training, Test
     # print('======================== Model compilation begin! =========================')
     adam = Adam(lr=0.0001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
-    q_net.compile(optimizer=adam, loss=mean_huber_loss)
+    q_net.compile(optimizer=adam, loss=mean_huber_loss_duel)
     # print('======================== Model compilation finished! =========================')
     # print('======================== Model training begin! =========================')
     DQNAgent.fit(env, args.env, args.output, 5000000, 100000)

@@ -66,24 +66,6 @@ class DQNAgent:
         self.batch_size = batch_size
         self.window_size = window_size
 
-    # def compile(self, optimizer, loss):
-    #     """Setup all of the TF graph variables/ops.
-
-    #     This is inspired by the compile method on the
-    #     keras.models.Model class.
-
-    #     This is a good place to create the target network, setup your
-    #     loss function and any placeholders you might need.
-        
-    #     You should use the mean_huber_loss function as your
-    #     loss_function. You can also experiment with MSE and other
-    #     losses.
-
-    #     The optimizer can be whatever class you want. We used the
-    #     keras.optimizers.Optimizer class. Specifically the Adam
-    #     optimizer.
-    #     """
-    #     self.q_network.compile(optimizer = optimizer, loss = loss)
 
     def calc_q_values(self, state, q_net):
         """Given a state (or batch of states) calculate the Q-values.
@@ -97,29 +79,6 @@ class DQNAgent:
         q_value = q_net.predict_on_batch(state)
         return q_value
 
-
-    # def select_action(self, state, **kwargs):
-    #     """Select the action based on the current state.
-
-    #     You will probably want to vary your behavior here based on
-    #     which stage of training your in. For example, if you're still
-    #     collecting random samples you might want to use a
-    #     UniformRandomPolicy.
-
-    #     If you're testing, you might want to use a GreedyEpsilonPolicy
-    #     with a low epsilon.
-
-    #     If you're training, you might want to use the
-    #     LinearDecayGreedyEpsilonPolicy.
-
-    #     This would also be a good place to call
-    #     process_state_for_network in your preprocessor.
-
-    #     Returns
-    #     --------
-    #     selected action
-    #     """
-    #     pass
 
     def update_policy(self, target_q):
         """Update your policy.
@@ -157,6 +116,7 @@ class DQNAgent:
 
         train_loss = self.q_network.train_on_batch(x, y)
         return train_loss
+
 
     def fit(self, env, env_name, output_add, num_iterations, max_episode_length=None):
         """Fit your model to the provided environment.
@@ -238,7 +198,7 @@ class DQNAgent:
                         loss.append([Q_update_counter, self.update_policy(target_q)])
                         # print(self.calc_q_values(np.asarray([prev_phi_state_n,]), self.q_network)[0])
                         evaluate_counter += 1
-                        if evaluate_counter % 50000 == 0:
+                        if evaluate_counter % 20000 == 0:
                         # if evaluate_counter % 2000 == 0:
                             score.append([Q_update_counter, self.evaluate(env_name, 10, max_episode_length)])
                             print("1 The average total score for 10 episodes after ", evaluate_counter, " updates is ", score[-1])
