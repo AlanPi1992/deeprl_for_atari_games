@@ -153,8 +153,7 @@ def main():  # noqa: D103
     q_net.compile(optimizer=adam, loss=mean_huber_loss)
     # print('======================== Model compilation finished! =========================')
     # print('======================== Model training begin! =========================')
-    DQNAgent.fit(env, args.env, args.output, 5000000, 100000)
-    # DQNAgent.fit(env, args.env, args.output, 10000, 100000)
+    DQNAgent.fit_double(env, args.env, args.output, 5000000, 100000)
     # print('======================== Model training finished! =========================')
 
 

@@ -158,28 +158,5 @@ def main():  # noqa: D103
     # print('======================== Model training finished! =========================')
 
 
-
-    # _img = Image.fromarray(_out)
-    # _img.save("test_enduro", "JPEG")
-
-    """total_reward = 0
-    num_steps = 0
-    while True:
-        nextstate, reward, is_terminal, debug_info = env.step(
-            env.action_space.sample())
-        env.render()
-
-        total_reward += reward
-        num_steps += 1
-
-        if is_terminal:
-            break
-
-        time.sleep(1)
-
-    print('Agent received total reward of: %f' % total_reward)
-    print('Agent took %d steps' % num_steps)"""
-
-
 if __name__ == '__main__':
     main()
