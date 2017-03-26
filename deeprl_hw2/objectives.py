@@ -56,7 +56,7 @@ def mean_huber_loss_duel(y_true, y_pred, max_grad=10.):
     """
     error = y_true - y_pred
     try:
-        loss = tf.select(tf.abs(error)<max_grad, 0.5*tf.square(error), tf.abs(error)-50)
+        loss = tf.select(tf.abs(error)<max_grad, 0.5*tf.square(error), 10*tf.abs(error)-50)
     except:
-        loss = tf.where(tf.abs(error)<max_grad, 0.5*tf.square(error), tf.abs(error)-50)
+        loss = tf.where(tf.abs(error)<max_grad, 0.5*tf.square(error), 10*tf.abs(error)-50)
     return tf.reduce_mean(loss)
