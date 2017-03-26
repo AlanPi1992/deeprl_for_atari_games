@@ -2,6 +2,8 @@
 
 import keras
 from keras.models import Model
+from keras.optimizers import Adam
+from deeprl_hw2.objectives import mean_huber_loss
 import numpy as np
 import gym
 import pickle
@@ -223,10 +225,9 @@ class DQNAgent:
         pickle.dump( score, open( output_add + "/score.p", "wb" ) )
 
 
-
-''' ========================================================================'''
-''' =====================  For double Q-net ================================'''
-''' ========================================================================'''
+# ''' ========================================================================'''
+# ''' =====================  For double Q-net ================================'''
+# ''' ========================================================================'''
     def update_policy_double(self, second_q):
         """Update your policy.
 
@@ -262,7 +263,7 @@ class DQNAgent:
                     y[counter, self.memory.buffer[_sample].action] = self.memory.buffer[_sample].reward
                 else:
                     _tmp = self.calc_q_values(np.asarray([self.memory.buffer[_sample].next_state.astype(np.float32),]), second_q)
-                    y[counter, self.memory.buffer[_sample].action] = self.memory.buffer[_sample].reward + 
+                    y[counter, self.memory.buffer[_sample].action] = self.memory.buffer[_sample].reward + \
                                                                      self.gamma * _tmp[0][tmp_action[counter]]
                 counter += 1
 
@@ -277,7 +278,7 @@ class DQNAgent:
                     y[counter, self.memory.buffer[_sample].action] = self.memory.buffer[_sample].reward
                 else:
                     _tmp = self.calc_q_values(np.asarray([self.memory.buffer[_sample].next_state.astype(np.float32),]), self.q_network)
-                    y[counter, self.memory.buffer[_sample].action] = self.memory.buffer[_sample].reward + 
+                    y[counter, self.memory.buffer[_sample].action] = self.memory.buffer[_sample].reward + \
                                                                      self.gamma * _tmp[0][tmp_action[counter]]
                 counter += 1
 
@@ -291,9 +292,13 @@ class DQNAgent:
            Using double deep Q-network 
         """
 
-        # Initialize a second Q network as same as the 1st Q network
+        # Initialize a second Q network as same as the 1st Q network, and compile it
         config = Model.get_config(self.q_network)
         second_q_net = Model.from_config(config)
+        adam = Adam(lr=0.0001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0)
+        second_q_net.compile(optimizer=adam, loss=mean_huber_loss)
+
+        # INITIALIZE counters and containers
         loss = []
         score = []
         episode_len = []
@@ -348,8 +353,8 @@ class DQNAgent:
                         loss.append([Q_update_counter, self.update_policy_double(second_q_net)])
                         # print(self.calc_q_values(np.asarray([prev_phi_state_n,]), self.q_network)[0])
                         evaluate_counter += 1
-                        if evaluate_counter % 20000 == 0:
-                        # if evaluate_counter % 2000 == 0:
+                        # if evaluate_counter % 20000 == 0:
+                        if evaluate_counter % 100 == 0:
                             score.append([Q_update_counter, self.evaluate(env_name, 10, max_episode_length)])
                             print("1 The average total score for 10 episodes after ", evaluate_counter, " updates is ", score[-1])
                             print("2 The loss after ", evaluate_counter, " updates is: ", loss[-1])
@@ -366,9 +371,9 @@ class DQNAgent:
         pickle.dump( episode_len, open( output_add + "/episode_length.p", "wb" ) )
         pickle.dump( loss, open( output_add + "/loss.p", "wb" ) )
         pickle.dump( score, open( output_add + "/score.p", "wb" ) )
-''' ========================================================================'''
-''' =====================  End For double Q-net ============================'''
-''' ========================================================================'''
+# ''' ========================================================================'''
+# ''' =====================  End For double Q-net ============================'''
+# ''' ========================================================================'''
 
 
 
@@ -400,6 +405,7 @@ class DQNAgent:
                 _action = self.policy.select_action(_tmp[0], False)
                 next_frame, reward, is_terminal, debug_info = env.step(_action)
                 phi_state_n = self.preprocessor.process_state_for_network(next_frame, prev_frame)
+                # Use the original reward to calculate total reward
                 total_reward += reward
                 if is_terminal:
                    break
