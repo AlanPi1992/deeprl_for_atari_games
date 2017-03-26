@@ -53,7 +53,7 @@ def create_model(window, input_shape, num_actions,
     # Create a linear Q-network
     with tf.name_scope(model_name):
         input_img = Input(shape = (window,) + input_shape) # Input shape = (4, 84, 84)
-        flat = Flatten()(input_img) # Flatten the convoluted hidden layers before full-connected layers
+        flat = Flatten()(input_img) # Flatten the input layer
         out = Dense(num_actions)(flat) # output layer has node number = num_actions
         model = Model(input = input_img, output = out)
     return model
