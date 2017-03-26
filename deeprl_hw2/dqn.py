@@ -106,6 +106,8 @@ class DQNAgent:
         x = np.asarray(x)
         y = self.calc_q_values(x, self.q_network) # reserve the order in mini_batch
 
+        # print(y)
+
         counter = 0
         for _sample in mini_batch_index:
             if self.memory.buffer[_sample].is_terminal:
@@ -115,6 +117,8 @@ class DQNAgent:
                 y[counter, self.memory.buffer[_sample].action] = self.memory.buffer[_sample].reward + self.gamma * max(_tmp[0])
             counter += 1
 
+        
+        # print('=================================================')
         train_loss = self.q_network.train_on_batch(x, y)
         return train_loss
 
@@ -167,7 +171,7 @@ class DQNAgent:
             self.preprocessor.reset()
             prev_phi_state_n = self.preprocessor.process_state_for_network(initial_frame, initial_frame)
             prev_phi_state_m = self.preprocessor.process_state_for_memory(initial_frame, initial_frame)
-            prev_frame = initial_frame
+            prev_frame = np.copy(initial_frame)
             for t in range(max_episode_length):
                 # Generate samples according to different policy
                 if self.memory.current_size > self.num_burn_in:
@@ -199,8 +203,8 @@ class DQNAgent:
                         loss.append([Q_update_counter, self.update_policy(target_q)])
                         # print(self.calc_q_values(np.asarray([prev_phi_state_n,]), self.q_network)[0])
                         evaluate_counter += 1
-                        if evaluate_counter % 20000 == 0:
-                        # if evaluate_counter % 2000 == 0:
+                        # if evaluate_counter % 20000 == 0:
+                        if evaluate_counter % 10000 == 0:
                             score.append([Q_update_counter, self.evaluate(env_name, 10, max_episode_length)])
                             print("1 The average total score for 10 episodes after ", evaluate_counter, " updates is ", score[-1])
                             print("2 The loss after ", evaluate_counter, " updates is: ", loss[-1])
@@ -211,9 +215,9 @@ class DQNAgent:
                         config = Model.get_config(self.q_network)
                         target_q = Model.from_config(config)
 
-                prev_frame = next_frame
-                prev_phi_state_m = phi_state_m
-                prev_phi_state_n = phi_state_n
+                prev_frame = np.copy(next_frame)
+                prev_phi_state_m = np.copy(phi_state_m)
+                prev_phi_state_n = np.copy(phi_state_n)
                 if is_terminal:
                     break
             # Store the episode length
@@ -306,7 +310,7 @@ class DQNAgent:
             self.preprocessor.reset()
             prev_phi_state_n = self.preprocessor.process_state_for_network(initial_frame, initial_frame)
             prev_phi_state_m = self.preprocessor.process_state_for_memory(initial_frame, initial_frame)
-            prev_frame = initial_frame
+            prev_frame = np.copy(initial_frame)
             for t in range(max_episode_length):
                 # Generate samples according to different policy
                 if self.memory.current_size > self.num_burn_in:
@@ -348,9 +352,9 @@ class DQNAgent:
                             print("1 The average total score for 10 episodes after ", evaluate_counter, " updates is ", score[-1])
                             print("2 The loss after ", evaluate_counter, " updates is: ", loss[-1])
 
-                prev_frame = next_frame
-                prev_phi_state_m = phi_state_m
-                prev_phi_state_n = phi_state_n
+                prev_frame = np.copy(next_frame)
+                prev_phi_state_m = np.copy(phi_state_m)
+                prev_phi_state_n = np.copy(phi_state_n)
                 if is_terminal:
                     break
             # Store the episode length
@@ -388,7 +392,7 @@ class DQNAgent:
             self.preprocessor.reset()
             prev_phi_state_n = self.preprocessor.process_state_for_network(initial_frame, initial_frame)
             total_reward = 0
-            prev_frame = initial_frame
+            prev_frame = np.copy(initial_frame)
             for t in range(max_episode_length):
                 _tmp = self.calc_q_values(np.asarray([prev_phi_state_n,]), self.q_network)
                 _action = self.policy.select_action(_tmp[0], False)
@@ -397,9 +401,9 @@ class DQNAgent:
                 # Use the original reward to calculate total reward
                 total_reward += reward
                 if is_terminal:
-                   break
-                prev_frame = next_frame
-                prev_phi_state_n = phi_state_n
+                    break
+                prev_frame = np.copy(next_frame)
+                prev_phi_state_n = np.copy(phi_state_n)
             mean_reward += total_reward
         return mean_reward/num_episodes
 
