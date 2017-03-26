@@ -229,19 +229,8 @@ class DQNAgent:
 # ''' =====================  For double Q-net ================================'''
 # ''' ========================================================================'''
     def update_policy_double(self, second_q):
-        """Update your policy.
+        """Update your policy in double Q network
 
-        Behavior may differ based on what stage of training your
-        in. If you're in training mode then you should check if you
-        should update your network parameters based on the current
-        step and the value you set for train_freq.
-
-        Inside, you'll want to sample a minibatch, calculate the
-        target values, update your network, and then update your
-        target values.
-
-        You might want to return the loss and other metrics as an
-        output. They can help you monitor how training is going.
         """
         # mini_batch = self.preprocessor.process_batch(self.memory.sample(self.batch_size))
         mini_batch_index = self.memory.sample(self.batch_size)
@@ -353,8 +342,8 @@ class DQNAgent:
                         loss.append([Q_update_counter, self.update_policy_double(second_q_net)])
                         # print(self.calc_q_values(np.asarray([prev_phi_state_n,]), self.q_network)[0])
                         evaluate_counter += 1
-                        # if evaluate_counter % 20000 == 0:
-                        if evaluate_counter % 100 == 0:
+                        if evaluate_counter % 20000 == 0:
+                        # if evaluate_counter % 100 == 0:
                             score.append([Q_update_counter, self.evaluate(env_name, 10, max_episode_length)])
                             print("1 The average total score for 10 episodes after ", evaluate_counter, " updates is ", score[-1])
                             print("2 The loss after ", evaluate_counter, " updates is: ", loss[-1])
