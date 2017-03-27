@@ -111,7 +111,7 @@ def main():  # noqa: D103
 
     args = parser.parse_args()
     args.output = get_output_folder(args.output, args.env)
-    args.output = '/home/thupxd/deeprl_for_atari_games/' + args.output # Comment out when running locally!
+    # args.output = '/home/thupxd/deeprl_for_atari_games/' + args.output # Comment out when running locally!
     os.makedirs(args.output, exist_ok=True)
 
     # here is where you should start up a session,

@@ -87,8 +87,8 @@ def main():  # noqa: D103
 
     print('load trained model...')
     # q_net = load_model('Enduro-v0-train1-1of3.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
-    q_net = load_model('deepQ/SpaceInvaders-v0-run2/qnet-0of3.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
-
+    # q_net = load_model('deepQ/SpaceInvaders-v0-run2/qnet-0of3.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
+    q_net = load_model('deepQ/Breakout-v0-run18/qnet-0of3.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
 
     mean_reward = 0
     num_episodes = 20
@@ -103,11 +103,11 @@ def main():  # noqa: D103
         	_tmp = q_net.predict_on_batch( np.asarray([prev_phi_state_n,]) )
         	_action = policy.select_action(_tmp[0], False)
         	next_frame, reward, is_terminal, debug_info = env.step(_action)
-        	# print(_tmp[0])
-        	# print(_action, reward, is_terminal, debug_info)
+        	print(_tmp[0])
+        	print(_action, reward, is_terminal, debug_info)
         	phi_state_n = preprocessor.process_state_for_network(next_frame, prev_frame)
         	total_reward += reward
-        	print(total_reward)
+        	# print(total_reward)
         	if is_terminal:
         		print("Episode finished after {} timesteps".format(t+1))
         		break

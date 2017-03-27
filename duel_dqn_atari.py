@@ -58,15 +58,18 @@ def create_model(window, input_shape, num_actions,
         # conv1 = Dropout(0.2)(conv1)
         conv2 = Convolution2D(64, (4,4), strides=2, padding='same', activation='relu')(conv1)
         # conv2 = Dropout(0.2)(conv2)
-        # conv2 = Convolution2D(64, (3,3), strides=1, padding='same', activation='relu')(conv2)
         flat = Flatten()(conv2) # Flatten the convoluted hidden layers before full-connected layers
-        full = Dense(512, activation='relu')(flat)
-        # output layer has node number = num_actions
-        out1 = Dense(num_actions)(full) 
-        out2 = Dense(1)(full)
-        z = Lambda(K.expand_dims(out2, axis=-1) + out1 - K.mean(out1, keepdims=True), 
-            output_shape=(num_actions,))
-        model = Model(input = input_img, output = z)
+        # y_advantage layer
+        full1 = Dense(512, activation='relu')(flat)
+        y_advantage = Dense(num_actions)(full1)
+        # y_val layer
+        full2 =  Dense(512, activation='relu')(flat)
+        y_val = Dense(1)(full2)
+        # average
+        y_advantage_avg = Lambda(lambda x: K.mean(x, axis=1, keepdims=True))(y_advantage)
+        # output
+        out = Lambda(lambda x: x[0] + x[1] - x[2])([y_val, y_advantage, y_advantage_avg])
+        model = Model(input = input_img, output = out)
     return model
 
 
@@ -116,7 +119,7 @@ def main():  # noqa: D103
 
     args = parser.parse_args()
     args.output = get_output_folder(args.output, args.env)
-    # args.output = '/home/thupxd/deeprl_for_atari_games/' + args.output # Comment out when running locally!
+    args.output = '/home/thupxd/deeprl_for_atari_games/' + args.output # Comment out when running locally!
     os.makedirs(args.output, exist_ok=True)
 
     # here is where you should start up a session,
@@ -139,7 +142,7 @@ def main():  # noqa: D103
     # print('======================== Preprocessor object is created. =========================')
 
     # Initialize a replay memory
-    replay_memory = tfrl.core.ReplayMemory(1000000, 4)
+    replay_memory = tfrl.core.ReplayMemory(500000, 4)
     # print('======================== Replay_memory object is created. =========================')
 
     # Initialize a policy
@@ -159,7 +162,7 @@ def main():  # noqa: D103
     q_net.compile(optimizer=adam, loss=mean_huber_loss_duel)
     # print('======================== Model compilation finished! =========================')
     # print('======================== Model training begin! =========================')
-    DQNAgent.fit(env, args.env, args.output, 5000000, 100000)
+    DQNAgent.fit(env, args.env, args.output, 3000000, 100000)
     # DQNAgent.fit(env, args.env, args.output, 10000, 100000)
     # print('======================== Model training finished! =========================')
 
