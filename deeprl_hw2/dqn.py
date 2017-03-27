@@ -151,8 +151,12 @@ class DQNAgent:
 
         # Alaogrithm 1 from the reference paper
         # Initialize a target Q network as same as the online Q network
-        config = Model.get_config(self.q_network)
+        config = self.q_network.get_config()
         target_q = Model.from_config(config)
+        weights = self.q_network.get_weights()
+        target_q.set_weights(weights)
+
+        # INITIALIZE counters and containers
         loss = []
         score = []
         episode_len = []
@@ -203,8 +207,8 @@ class DQNAgent:
                         loss.append([Q_update_counter, self.update_policy(target_q)])
                         # print(self.calc_q_values(np.asarray([prev_phi_state_n,]), self.q_network)[0])
                         evaluate_counter += 1
-                        # if evaluate_counter % 20000 == 0:
-                        if evaluate_counter % 10000 == 0:
+                        if evaluate_counter % 20000 == 0:
+                        # if evaluate_counter % 1000 == 0:
                             score.append([Q_update_counter, self.evaluate(env_name, 10, max_episode_length)])
                             print("1 The average total score for 10 episodes after ", evaluate_counter, " updates is ", score[-1])
                             print("2 The loss after ", evaluate_counter, " updates is: ", loss[-1])
@@ -212,8 +216,8 @@ class DQNAgent:
                     targetQ_update_counter += 1
                     if targetQ_update_counter == self.target_update_freq:
                         targetQ_update_counter = 0
-                        config = Model.get_config(self.q_network)
-                        target_q = Model.from_config(config)
+                        weights = self.q_network.get_weights()
+                        target_q.set_weights(weights)
 
                 prev_frame = np.copy(next_frame)
                 prev_phi_state_m = np.copy(phi_state_m)

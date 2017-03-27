@@ -134,7 +134,7 @@ def main():  # noqa: D103
     # print('======================== Preprocessor object is created. =========================')
 
     # Initialize a replay memory
-    replay_memory = tfrl.core.ReplayMemory(1000000, 4)
+    replay_memory = tfrl.core.ReplayMemory(500000, 4)
     # print('======================== Replay_memory object is created. =========================')
 
     # Initialize a policy

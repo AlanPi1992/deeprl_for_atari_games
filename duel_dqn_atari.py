@@ -61,9 +61,11 @@ def create_model(window, input_shape, num_actions,
         # conv2 = Convolution2D(64, (3,3), strides=1, padding='same', activation='relu')(conv2)
         flat = Flatten()(conv2) # Flatten the convoluted hidden layers before full-connected layers
         full = Dense(512, activation='relu')(flat)
-        out = Dense(num_actions+1)(full) # output layer has node number = num_actions
-        z = Lambda(lambda a: K.expand_dims(a[:, 0], axis=-1) + a[:, 1:] - K.mean(a[:, 1:], keepdims=True), 
-            output_shape=(num_actions,))(out)
+        # output layer has node number = num_actions
+        out1 = Dense(num_actions)(full) 
+        out2 = Dense(1)(full)
+        z = Lambda(K.expand_dims(out2, axis=-1) + out1 - K.mean(out1, keepdims=True), 
+            output_shape=(num_actions,))
         model = Model(input = input_img, output = z)
     return model
 
@@ -114,7 +116,7 @@ def main():  # noqa: D103
 
     args = parser.parse_args()
     args.output = get_output_folder(args.output, args.env)
-    args.output = '/home/thupxd/deeprl_for_atari_games/' + args.output # Comment out when running locally!
+    # args.output = '/home/thupxd/deeprl_for_atari_games/' + args.output # Comment out when running locally!
     os.makedirs(args.output, exist_ok=True)
 
     # here is where you should start up a session,
