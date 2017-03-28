@@ -31,7 +31,7 @@ pushd $PYLON5
 source $HOME/deeprl_for_atari_games/deeprl_hw2_gpu/bin/activate
 
 # run the experiment script
-python3.5 $HOME/deeprl_for_atari_games/duel_dqn_atari.py
+python3.5 $HOME/deeprl_for_atari_games/duel_dqn_atari.py --env Enduro-v0
 
 # turn off the virtualenv
 deactivate
