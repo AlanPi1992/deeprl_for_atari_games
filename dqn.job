@@ -28,7 +28,7 @@ module load python3
 pushd $PYLON5
 
 # turn on the virtualenv
-source $HOME/deeprl_for_atari_games/deeprl_hw2_gpu/bin/activate
+source $HOME/deeprl_for_atari_games/deeprl_gpu/bin/activate
 
 # run the experiment script
 python3.5 $HOME/deeprl_for_atari_games/dqn_atari.py --env Enduro-v0
