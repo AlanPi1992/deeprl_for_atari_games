@@ -1,6 +1,7 @@
 """Core classes."""
 
 from numpy import random
+import numpy as np
 
 class Sample:
     """Represents a reinforcement learning sample.
@@ -12,33 +13,12 @@ class Sample:
     replay memory, but it is a convenient class to work with when
     sampling batches, or saving and loading samples while debugging.
 
-    Parameters
-    ----------
-    state: array-like
-      Represents the state of the MDP before taking an action. In most
-      cases this will be a numpy array.
-    action: int, float, tuple
-      For discrete action domains this will be an integer. For
-      continuous action domains this will be a floating point
-      number. For a parameterized action MDP this will be a tuple
-      containing the action and its associated parameters.
-    reward: float
-      The reward received for executing the given action in the given
-      state and transitioning to the resulting state.
-    next_state: array-like
-      This is the state the agent transitions to after executing the
-      `action` in `state`. Expected to be the same type/dimensions as
-      the state.
-    is_terminal: boolean
-      True if this action finished the episode. False otherwise.
     """
-    def __init__(self, state, action, reward, next_state, is_terminal):
-      self.state = state
+    def __init__(self, action, reward, timestamp, is_terminal):
       self.action = action
       self.reward = reward
-      self.next_state = next_state
+      self.timestamp = timestamp
       self.is_terminal = is_terminal
-
 
 
 class Preprocessor:
@@ -217,29 +197,30 @@ class ReplayMemory:
         self.window_length = window_length
         self.current_size = 0
         self.buffer = [0 for i in range(max_size)]
+        self.other_buffer = [0 for i in range(max_size)]
         self.index = 0 # track the index where the next sample should be inserted
 
-    def append(self, state, action, reward, next_state, is_terminal):
-        _sample = Sample(state, action, reward, next_state, is_terminal)
-        self.buffer[self.index] = _sample
+    def append_frame(self, frame):
+        self.buffer[self.index] = np.copy(frame)
         self.index += 1
         if self.current_size < self.buffer_size:
             self.current_size += 1
         if self.index == self.buffer_size:
             self.index = 0
 
-    def end_episode(self, final_state, is_terminal):
-        raise NotImplementedError('This method should be overridden')
+    def append_other(self, action, reward, timestamp, is_terminal):
+        _sample = Sample(action, reward, timestamp, is_terminal)
+        if self.index == 0:
+            self.other_buffer[self.buffer_size-1] = _sample
+        else:
+            self.other_buffer[self.index-1] = _sample
 
-    def sample(self, batch_size, indexes=None):
-        if indexes == None:
-            indexes = random.choice(self.current_size, batch_size, replace=False)
-        # random_samples = []
-        # for _id in indexes:
-            # random_samples.append(self.buffer[_id])
+    def sample(self, batch_size):
+        indexes = random.choice(self.current_size, batch_size, replace=False)
         return indexes
 
     def clear(self):
         self.buffer = [0 for i in range(self.buffer_size)]
+        self.other_buffer = [0 for i in range(self.buffer_size)]
         self.index = 0
         self.current_size = 0

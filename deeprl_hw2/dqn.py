@@ -3,7 +3,9 @@
 import keras
 from keras.models import Model
 from keras.optimizers import Adam
+
 from deeprl_hw2.objectives import mean_huber_loss
+
 import numpy as np
 import gym
 import pickle
@@ -97,31 +99,53 @@ class DQNAgent:
         You might want to return the loss and other metrics as an
         output. They can help you monitor how training is going.
         """
-        # mini_batch = self.preprocessor.process_batch(self.memory.sample(self.batch_size))
         mini_batch_index = self.memory.sample(self.batch_size)
-
         x = []
-        for _sample in mini_batch_index:
-            x.append(self.memory.buffer[_sample].state.astype(np.float32))
+        x_next  = []
+        for _sample_index in mini_batch_index:
+            x.append(self.stack_frames(_sample_index, self.memory.other_buffer[_sample_index].timestamp))
+            _next_index = _sample_index + 1
+            if _next_index == self.memory.current_size:
+                _next_index = 0
+            x_next.append(self.stack_frames(_next_index, self.memory.other_buffer[_next_index].timestamp))
+        
         x = np.asarray(x)
         y = self.calc_q_values(x, self.q_network) # reserve the order in mini_batch
-
-        # print(y)
+        x_next = np.asarray(x_next)
+        y_next = self.calc_q_values(x_next, target_q) # reserve the order in mini_batch 
+        y_max = np.amax(y_next, axis=1)
 
         counter = 0
-        for _sample in mini_batch_index:
-            if self.memory.buffer[_sample].is_terminal:
-                y[counter, self.memory.buffer[_sample].action] = self.memory.buffer[_sample].reward
+        for _sample_index in mini_batch_index:
+            if self.memory.other_buffer[_sample_index].is_terminal:
+                y[counter, self.memory.other_buffer[_sample_index].action] = \
+                    self.memory.other_buffer[_sample_index].reward
             else:
-                _tmp = self.calc_q_values(np.asarray([self.memory.buffer[_sample].next_state.astype(np.float32),]), target_q)
-                y[counter, self.memory.buffer[_sample].action] = self.memory.buffer[_sample].reward + self.gamma * max(_tmp[0])
+                y[counter, self.memory.other_buffer[_sample_index].action] = \
+                    self.memory.other_buffer[_sample_index].reward + self.gamma * y_max[counter]
             counter += 1
 
-        
-        # print('=================================================')
         train_loss = self.q_network.train_on_batch(x, y)
         return train_loss
 
+    def stack_frames(self, index, t):
+        """ Stack the consecutive 4 frames end at a specific buffer index to form a state """
+        _state = np.zeros((4, 84, 84))
+        # t is the timestamp in an episode
+        if t < 4:
+            for i in range(t):
+                _state[3-i] = self.memory.buffer[index]
+                index -= 1
+                if index == -1:
+                    index = self.memory.current_size-1
+        else:
+            for i in range(4):
+                _state[3-i] = self.memory.buffer[index]
+                index -= 1
+                if index == -1:
+                    index = self.memory.current_size-1
+        _state = _state.astype(dtype=np.float32)
+        return _state/255
 
     def fit(self, env, env_name, output_add, num_iterations, max_episode_length=None):
         """Fit your model to the provided environment.
@@ -136,19 +160,7 @@ class DQNAgent:
         collect experience samples and add them to your replay memory,
         and update your network parameters.
 
-        Parameters
-        ----------
-        env: gym.Env
-          This is your Atari environment. You should wrap the
-          environment using the wrap_atari_env function in the
-          utils.py
-        num_iterations: int
-          How many samples/updates to perform.
-        max_episode_length: int
-          How long a single episode should last before the agent
-          resets. Can help exploration.
         """
-
         # Alaogrithm 1 from the reference paper
         # Initialize a target Q network as same as the online Q network
         config = self.q_network.get_config()
@@ -161,10 +173,9 @@ class DQNAgent:
         score = []
         episode_len = []
         Q_update_counter = 0
-        old_Q_update_counter = 0
         targetQ_update_counter = 0
         evaluate_counter = 0
-        episode_counter = 0
+        episode_counter = 0        
         while True:
             if Q_update_counter > num_iterations:
                 break
@@ -173,22 +184,23 @@ class DQNAgent:
             print("********  0 Begin the training episode: ", episode_counter, ", currently ", Q_update_counter, " step  *******************")
             initial_frame = env.reset()
             self.preprocessor.reset()
-            prev_phi_state_n = self.preprocessor.process_state_for_network(initial_frame, initial_frame)
-            prev_phi_state_m = self.preprocessor.process_state_for_memory(initial_frame, initial_frame)
-            prev_frame = np.copy(initial_frame)
-            for t in range(max_episode_length):
+            prev_frame = self.preprocessor.process_frame_for_memory(initial_frame)
+            self.memory.append_frame(prev_frame)
+            for t in range(1, max_episode_length):
                 # Generate samples according to different policy
                 if self.memory.current_size > self.num_burn_in:
-                    _tmp = self.calc_q_values(np.asarray([prev_phi_state_n,]), self.q_network)
+                    if self.memory.index == 0:
+                        _state = self.stack_frames(self.memory.index-1, t)
+                    else:
+                        _state = self.stack_frames(self.memory.current_size-1, t)
+                    _tmp = self.calc_q_values(np.asarray([_state,]), self.q_network)
                     _action = self.policy.select_action(_tmp[0], True)
                 else:
                     _action = np.random.randint(0, self.policy.epsilon_greedy_policy.num_actions)
                 next_frame, reward, is_terminal, debug_info = env.step(_action)
                 reward = self.preprocessor.process_reward(reward)
-                phi_state_n = self.preprocessor.process_state_for_network(next_frame, prev_frame)
-                phi_state_m = self.preprocessor.process_state_for_memory(next_frame, prev_frame)
-                self.memory.append(prev_phi_state_m, _action, reward, phi_state_m, is_terminal)
-                
+                self.memory.append_other(_action, reward, t, is_terminal)
+
                 # Save the trained Q-net at 4 check points
                 Q_update_counter += 1
                 if Q_update_counter == 1:
@@ -219,14 +231,13 @@ class DQNAgent:
                         weights = self.q_network.get_weights()
                         target_q.set_weights(weights)
 
-                prev_frame = np.copy(next_frame)
-                prev_phi_state_m = np.copy(phi_state_m)
-                prev_phi_state_n = np.copy(phi_state_n)
                 if is_terminal:
                     break
+
+                prev_frame = self.preprocessor.process_frame_for_memory(next_frame)
+                self.memory.append_frame(prev_frame)
             # Store the episode length
-            episode_len.append(Q_update_counter - old_Q_update_counter)
-            old_Q_update_counter = Q_update_counter
+            episode_len.append(t)
         # Save the episode_len, loss, score into files
         pickle.dump( episode_len, open( output_add + "/episode_length.p", "wb" ) )
         pickle.dump( loss, open( output_add + "/loss.p", "wb" ) )
@@ -393,21 +404,27 @@ class DQNAgent:
         mean_reward = 0
         for episode in range(num_episodes):
             initial_frame = env.reset()
-            self.preprocessor.reset()
-            prev_phi_state_n = self.preprocessor.process_state_for_network(initial_frame, initial_frame)
+            state = np.zeros((4, 84, 84), dtype=np.float32)
+            # Preprocess the state      
+            prev_frame = self.preprocessor.process_frame_for_memory(initial_frame).astype(dtype=np.float32)
+            prev_frame = prev_frame/255
+            state[:-1] = state[1:]
+            state[-1] = np.copy(prev_frame)
+            # Initialize the total reward and then begin an episode
             total_reward = 0
-            prev_frame = np.copy(initial_frame)
             for t in range(max_episode_length):
-                _tmp = self.calc_q_values(np.asarray([prev_phi_state_n,]), self.q_network)
+                _tmp = self.calc_q_values(np.asarray([state,]), self.q_network)
                 _action = self.policy.select_action(_tmp[0], False)
                 next_frame, reward, is_terminal, debug_info = env.step(_action)
-                phi_state_n = self.preprocessor.process_state_for_network(next_frame, prev_frame)
                 # Use the original reward to calculate total reward
                 total_reward += reward
                 if is_terminal:
                     break
-                prev_frame = np.copy(next_frame)
-                prev_phi_state_n = np.copy(phi_state_n)
+                # Update the state
+                prev_frame = self.preprocessor.process_frame_for_memory(next_frame).astype(dtype=np.float32)
+                prev_frame = prev_frame/255
+                state[:-1] = state[1:]
+                state[-1] = np.copy(prev_frame)
             mean_reward += total_reward
         return mean_reward/num_episodes
 

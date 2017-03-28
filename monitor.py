@@ -20,7 +20,6 @@ from PIL import Image
 import deeprl_hw2 as tfrl
 from deeprl_hw2.dqn import DQNAgent
 from deeprl_hw2.objectives import mean_huber_loss
-from deeprl_hw2.preprocessors import PreprocessorSequence
 
 
 def get_output_folder(parent_dir, env_name):
@@ -77,46 +76,51 @@ def main():  # noqa: D103
     env = wrappers.Monitor(env, args.output)
 
     # Initialize a preporcessor sequence object
-    atari_preprocessor = tfrl.preprocessors.AtariPreprocessor((84, 84))
-    history_preprocessor = tfrl.preprocessors.HistoryPreprocessor(4)
-    preprocessor = tfrl.preprocessors.PreprocessorSequence(atari_preprocessor, history_preprocessor)
+    preprocessor = tfrl.preprocessors.AtariPreprocessor((84, 84))
 
     # Initialize a policy
     _policy = tfrl.policy.GreedyEpsilonPolicy(0.05, env.action_space.n)
     policy = tfrl.policy.LinearDecayGreedyEpsilonPolicy(_policy, 1, 0.1, 1000000)
 
-    print('load trained model...')
-    # q_net = load_model('Enduro-v0-train1-1of3.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
+    print('load trained model...') 
+    # q_net = load_model('qnet-1of3.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
     # q_net = load_model('deepQ/SpaceInvaders-v0-run2/qnet-0of3.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
-    q_net = load_model('deepQ/Breakout-v0-run18/qnet-0of3.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
+    q_net = load_model('deepQ/Breakout-v0-run28/qnet-0of3.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
+    # q_net = load_model('deepQ/Enduro-v0-run29/qnet-0of3.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
 
     mean_reward = 0
     num_episodes = 20
     for episode in range(num_episodes):
         initial_frame = env.reset()
-        preprocessor.reset()
-        prev_phi_state_n = preprocessor.process_state_for_network(initial_frame, initial_frame)
+        state = np.zeros((4, 84, 84), dtype=np.float32)
+        # Preprocess the state      
+        prev_frame = preprocessor.process_frame_for_memory(initial_frame).astype(dtype=np.float32)
+        prev_frame = prev_frame/255
+        state[:-1] = state[1:]
+        state[-1] = np.copy(prev_frame)
         total_reward = 0
-        prev_frame = np.copy(initial_frame)
         for t in range(100000):
         	env.render()
-        	_tmp = q_net.predict_on_batch( np.asarray([prev_phi_state_n,]) )
+        	_tmp = q_net.predict_on_batch( np.asarray([state,]) )
         	_action = policy.select_action(_tmp[0], False)
         	next_frame, reward, is_terminal, debug_info = env.step(_action)
-        	print(_tmp[0])
-        	print(_action, reward, is_terminal, debug_info)
+        	# print(_tmp[0])
+        	# print(_action, reward, is_terminal, debug_info)
         	phi_state_n = preprocessor.process_state_for_network(next_frame, prev_frame)
         	total_reward += reward
-        	# print(total_reward)
+        	print(total_reward)
+        	
         	if is_terminal:
         		print("Episode finished after {} timesteps".format(t+1))
         		break
-        	prev_frame = np.copy(next_frame)
-        	prev_phi_state_n = np.copy(phi_state_n)
+
+        	prev_frame = preprocessor.process_frame_for_memory(next_frame).astype(dtype=np.float32)
+        	prev_frame = prev_frame/255
+        	state[:-1] = state[1:]
+        	state[-1] = np.copy(prev_frame)
+
         mean_reward += total_reward
-
     print(mean_reward/num_episodes)
-
 
 
 if __name__ == '__main__':

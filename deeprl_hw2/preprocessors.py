@@ -7,51 +7,6 @@ from deeprl_hw2 import utils
 from deeprl_hw2.core import Preprocessor
 
 
-class HistoryPreprocessor(Preprocessor):
-    """Keeps the last k states.
-
-    Useful for domains where you need velocities, but the state
-    contains only positions.
-
-    When the environment starts, this will just fill the initial
-    sequence values with zeros k times.
-
-    Parameters
-    ----------
-    history_length: int
-      Number of previous states to prepend to state being processed.
-
-    """
-
-    def __init__(self, history_length):
-        self.h_length = history_length
-        self.h_state_for_network = np.zeros((self.h_length, 84, 84), dtype=np.float32)
-        self.h_state_for_memory = np.zeros((self.h_length, 84, 84), dtype=np.uint8)
-
-    def process_state_for_network(self, state, prev_state=None):
-        """You only want history when you're deciding the current action to take."""
-        self.h_state_for_network[:-1] = self.h_state_for_network[1:]
-        self.h_state_for_network[-1] = state.astype(np.float32)
-        return self.h_state_for_network
-
-    def process_state_for_memory(self, state, prev_state=None):
-        """You only want history when you're deciding the current action to take."""
-        self.h_state_for_memory[:-1] = self.h_state_for_memory[1:]
-        self.h_state_for_memory[-1] = state.astype(np.uint8)
-        return self.h_state_for_memory
-
-    def reset(self):
-        """Reset the history sequence.
-
-        Useful when you start a new episode.
-        """
-        self.h_state_for_network = np.zeros((self.h_length, 84, 84), dtype=np.float32)
-        self.h_state_for_memory = np.zeros((self.h_length, 84, 84), dtype=np.uint8)
-
-    def get_config(self):
-        return {'history_length': self.h_length}
-
-
 class AtariPreprocessor(Preprocessor):
     """Converts images to greyscale and downscales.
 
@@ -91,7 +46,7 @@ class AtariPreprocessor(Preprocessor):
     def __init__(self, new_size):
         self.a_size = new_size
 
-    def process_state_for_memory(self, state, prev_state):
+    def process_frame_for_memory(self, state):
         """Scale, convert to greyscale and store as uint8.
 
         We don't want to save floating point numbers in the replay
@@ -101,72 +56,20 @@ class AtariPreprocessor(Preprocessor):
         We recommend using the Python Image Library (PIL) to do the
         image conversions.
         """
-        state = np.maximum(state, prev_state)
         _img = Image.fromarray(state) # from ndarray to image
         _img = _img.convert('L') # to greyscale
         _img = _img.resize(self.a_size) # scale
         return np.asarray(_img, dtype=np.uint8) # from image to ndarray
 
-    def process_state_for_network(self, state, prev_state):
-        """Scale, convert to greyscale and store as float32.
+    # def process_frame_for_network(self, state):
+    #     """Scale, convert to greyscale and store as float32.
 
-        Basically same as process state for memory, but this time
-        outputs float32 images.
-        """
-        state = np.maximum(state, prev_state)
-        _img = Image.fromarray(state) # from ndarray to image
-        _img = _img.convert('L') # to greyscale
-        _img = _img.resize(self.a_size) # scale
-        return np.asarray(_img, dtype=np.float32) # from image to ndarray
-
-
-class PreprocessorSequence(Preprocessor):
-    """You may find it useful to stack multiple prepcrocesosrs (such as the History and the AtariPreprocessor).
-
-    You can easily do this by just having a class that calls each preprocessor in succession.
-
-    For example, if you call the process_state_for_network and you
-    have a sequence of AtariPreproccessor followed by
-    HistoryPreprocessor. This this class could implement a
-    process_state_for_network that does something like the following:
-
-    state = atari.process_state_for_network(state)
-    return history.process_state_for_network(state)
-    """
-    def __init__(self, atari_p, history_p):
-        self.atari_p = atari_p
-        self.history_p = history_p
-
-    def process_state_for_memory(self, state, prev_state):
-        _state = self.atari_p.process_state_for_memory(state, prev_state) # np.ndarray (84, 84) uint8
-        return self.history_p.process_state_for_memory(_state) # np.ndarray (4, 84, 84) uint8
-
-    def process_state_for_network(self, state, prev_state):
-        _state = self.atari_p.process_state_for_network(state, prev_state) # np.ndarray (84, 84) float32
-        return self.history_p.process_state_for_network(_state) # np.ndarray (4, 84, 84) float32
-
-    # def process_batch(self, samples):
-    #     """The batches from replay memory will be uint8, convert to float32.
-
-    #     Same as process_state_for_network but works on a batch of
-    #     samples from the replay memory. Meaning you need to convert
-    #     both state and next state values.
+    #     Basically same as process state for memory, but this time
+    #     outputs float32 images.
     #     """
-    #     for _item in samples:
-    #         _item.state = _item.state.astype(np.float32)
-    #         _item.next_state = _item.next_state.astype(np.float32)
-    #     return samples
-
-    def process_reward(self, reward):
-        """Clip reward between -1 and 1."""
-        if reward > 0:
-            return 1
-        elif reward < 0:
-            return -1
-        else:
-            return 0
-
-    def reset(self):
-        self.history_p.reset()
+    #     _img = Image.fromarray(state) # from ndarray to image
+    #     _img = _img.convert('L') # to greyscale
+    #     _img = _img.resize(self.a_size) # scale
+    #     return np.asarray(_img, dtype=np.float32) # from image to ndarray
 
 

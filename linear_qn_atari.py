@@ -18,7 +18,6 @@ from PIL import Image
 import deeprl_hw2 as tfrl
 from deeprl_hw2.dqn import DQNAgent
 from deeprl_hw2.objectives import mean_huber_loss
-from deeprl_hw2.preprocessors import PreprocessorSequence
 
 def create_model(window, input_shape, num_actions,
                  model_name='q_network'):  # noqa: D103
@@ -105,7 +104,7 @@ def main():  # noqa: D103
 
     args = parser.parse_args()
     args.output = get_output_folder(args.output, args.env)
-    args.output = '/home/thupxd/deeprl_for_atari_games/' + args.output # Comment out when running locally!
+    # args.output = '/home/thupxd/deeprl_for_atari_games/' + args.output # Comment out when running locally!
     os.makedirs(args.output, exist_ok=True)
 
     # here is where you should start up a session,
@@ -118,17 +117,15 @@ def main():  # noqa: D103
 
     # Create a Q network
     num_actions = env.action_space.n
-    q_net = create_model(4, (84, 84), num_actions, model_name='Linear_Q_Net_with_Replay_Memory_and_Target_Fixing')
+    q_net = create_model(4, (84, 84), num_actions, model_name='Linear_Q_Net')
     # print('======================== Keras Q-network model is created. =========================')
 
     # Initialize a preporcessor sequence object
     atari_preprocessor = tfrl.preprocessors.AtariPreprocessor((84, 84))
-    history_preprocessor = tfrl.preprocessors.HistoryPreprocessor(4)
-    preprocessor_seq = tfrl.preprocessors.PreprocessorSequence(atari_preprocessor, history_preprocessor)
     # print('======================== Preprocessor object is created. =========================')
 
     # Initialize a replay memory
-    replay_memory = tfrl.core.ReplayMemory(500000, 4)
+    replay_memory = tfrl.core.ReplayMemory(1000000, 4)
     # print('======================== Replay_memory object is created. =========================')
 
     # Initialize a policy
@@ -137,7 +134,7 @@ def main():  # noqa: D103
     # print('======================== (linear-decay) Eps-Greedy Policy object is created. =========================')
 
     # Initialize a DQNAgent
-    DQNAgent = tfrl.dqn.DQNAgent(q_net, preprocessor_seq, replay_memory, policy, gamma=0.99,
+    DQNAgent = tfrl.dqn.DQNAgent(q_net, atari_preprocessor, replay_memory, policy, gamma=0.99,
                                  target_update_freq=10000, num_burn_in=75000, train_freq=4, 
                                  batch_size=32, window_size=4)
     # print('======================== DQN agent is created. =========================')
@@ -149,7 +146,6 @@ def main():  # noqa: D103
     # print('======================== Model compilation finished! =========================')
     # print('======================== Model training begin! =========================')
     DQNAgent.fit(env, args.env, args.output, 3000000, 100000)
-    # DQNAgent.fit(env, args.env, args.output, 10000, 100000)
     # print('======================== Model training finished! =========================')
 
 
