@@ -61,6 +61,15 @@ class AtariPreprocessor(Preprocessor):
         _img = _img.resize(self.a_size) # scale
         return np.asarray(_img, dtype=np.uint8) # from image to ndarray
 
+    # def process_reward(self, reward):
+    #     """Clip reward between -1 and 1."""
+    #     if reward > 0:
+    #         return 1
+    #     elif reward < 0:
+    #         return -1
+    #     else:
+    #         return 0
+
     # def process_frame_for_network(self, state):
     #     """Scale, convert to greyscale and store as float32.
 

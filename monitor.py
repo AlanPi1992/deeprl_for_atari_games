@@ -84,8 +84,8 @@ def main():  # noqa: D103
 
     print('load trained model...') 
     # q_net = load_model('qnet-1of3.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
-    # q_net = load_model('deepQ/SpaceInvaders-v0-run2/qnet-0of3.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
-    q_net = load_model('deepQ/Breakout-v0-run28/qnet-0of3.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
+    q_net = load_model('deepQ/SpaceInvaders-v0-run2/qnet-0of3.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
+    # q_net = load_model('deepQ/Breakout-v0-run28/qnet-0of3.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
     # q_net = load_model('deepQ/Enduro-v0-run29/qnet-0of3.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
 
     mean_reward = 0
@@ -106,9 +106,12 @@ def main():  # noqa: D103
         	next_frame, reward, is_terminal, debug_info = env.step(_action)
         	# print(_tmp[0])
         	# print(_action, reward, is_terminal, debug_info)
+        	# if reward != 0:
+        		# print(reward)
+
         	phi_state_n = preprocessor.process_state_for_network(next_frame, prev_frame)
         	total_reward += reward
-        	print(total_reward)
+        	# print(total_reward)
         	
         	if is_terminal:
         		print("Episode finished after {} timesteps".format(t+1))

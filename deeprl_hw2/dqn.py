@@ -183,7 +183,7 @@ class DQNAgent:
             episode_counter += 1
             print("********  0 Begin the training episode: ", episode_counter, ", currently ", Q_update_counter, " step  *******************")
             initial_frame = env.reset()
-            self.preprocessor.reset()
+            current_lives = env.env.ale.lives()
             prev_frame = self.preprocessor.process_frame_for_memory(initial_frame)
             self.memory.append_frame(prev_frame)
             for t in range(1, max_episode_length):
@@ -197,8 +197,17 @@ class DQNAgent:
                     _action = self.policy.select_action(_tmp[0], True)
                 else:
                     _action = np.random.randint(0, self.policy.epsilon_greedy_policy.num_actions)
+
                 next_frame, reward, is_terminal, debug_info = env.step(_action)
+
+                # Process the raw reward
                 reward = self.preprocessor.process_reward(reward)
+                if current_lives > env.env.ale.lives():
+                    reward -= 50
+                elif current_lives < env.env.ale.lives():
+                    reward += 50
+                current_lives = env.env.ale.lives()
+
                 self.memory.append_other(_action, reward, t, is_terminal)
 
                 # Save the trained Q-net at 4 check points
@@ -219,8 +228,8 @@ class DQNAgent:
                         loss.append([Q_update_counter, self.update_policy(target_q)])
                         # print(self.calc_q_values(np.asarray([prev_phi_state_n,]), self.q_network)[0])
                         evaluate_counter += 1
-                        if evaluate_counter % 20000 == 0:
-                        # if evaluate_counter % 1000 == 0:
+                        # if evaluate_counter % 20000 == 0:
+                        if evaluate_counter % 1000 == 0:
                             score.append([Q_update_counter, self.evaluate(env_name, 10, max_episode_length)])
                             print("1 The average total score for 10 episodes after ", evaluate_counter, " updates is ", score[-1])
                             print("2 The loss after ", evaluate_counter, " updates is: ", loss[-1])
@@ -255,41 +264,45 @@ class DQNAgent:
         mini_batch_index = self.memory.sample(self.batch_size)
 
         x = []
-        for _sample in mini_batch_index:
-            x.append(self.memory.buffer[_sample].state.astype(np.float32))
+        x_next = []
+        for _sample_index in mini_batch_index:
+            x.append(self.stack_frames(_sample_index, self.memory.other_buffer[_sample_index].timestamp))
+            _next_index = _sample_index + 1
+            if _next_index == self.memory.current_size:
+                _next_index = 0
+            x_next.append(self.stack_frames(_next_index, self.memory.other_buffer[_next_index].timestamp))
         x = np.asarray(x)
+        x_next = np.asarray(x_next)
 
         # Randomly change the role of q network 1 and 2 and do update
         _rand = np.random.uniform()
         if _rand < 0.50:
             y = self.calc_q_values(x, self.q_network)
             tmp_action = np.argmax(y, axis = 1)
-
+            y_next = self.calc_q_values(x_next, second_q)
             counter = 0
             for _sample in mini_batch_index:
-                if self.memory.buffer[_sample].is_terminal:
-                    y[counter, self.memory.buffer[_sample].action] = self.memory.buffer[_sample].reward
+                if self.memory.other_buffer[_sample].is_terminal:
+                    y[counter, self.memory.other_buffer[_sample].action] = \
+                        self.memory.other_buffer[_sample].reward
                 else:
-                    _tmp = self.calc_q_values(np.asarray([self.memory.buffer[_sample].next_state.astype(np.float32),]), second_q)
-                    y[counter, self.memory.buffer[_sample].action] = self.memory.buffer[_sample].reward + \
-                                                                     self.gamma * _tmp[0][tmp_action[counter]]
+                    y[counter, self.memory.other_buffer[_sample].action] = \
+                        self.memory.other_buffer[_sample].reward + self.gamma * y_next[counter][tmp_action[counter]]
                 counter += 1
-
             train_loss = self.q_network.train_on_batch(x, y)
         else:
             y = self.calc_q_values(x, second_q)
             tmp_action = np.argmax(y, axis = 1)
-
+            y_next = self.calc_q_values(x_next, self.q_network)
             counter = 0
             for _sample in mini_batch_index:
-                if self.memory.buffer[_sample].is_terminal:
-                    y[counter, self.memory.buffer[_sample].action] = self.memory.buffer[_sample].reward
+                if self.memory.other_buffer[_sample].is_terminal:
+                    y[counter, self.memory.other_buffer[_sample].action] = \
+                        self.memory.other_buffer[_sample].reward
                 else:
-                    _tmp = self.calc_q_values(np.asarray([self.memory.buffer[_sample].next_state.astype(np.float32),]), self.q_network)
-                    y[counter, self.memory.buffer[_sample].action] = self.memory.buffer[_sample].reward + \
-                                                                     self.gamma * _tmp[0][tmp_action[counter]]
+                    y[counter, self.memory.other_buffer[_sample].action] = \
+                        self.memory.other_buffer[_sample].reward + self.gamma * y_next[counter][tmp_action[counter]]
                 counter += 1
-
             train_loss = second_q.train_on_batch(x, y)
 
         return train_loss
@@ -311,7 +324,6 @@ class DQNAgent:
         score = []
         episode_len = []
         Q_update_counter = 0
-        old_Q_update_counter = 0
         targetQ_update_counter = 0
         evaluate_counter = 0
         episode_counter = 0
@@ -322,26 +334,35 @@ class DQNAgent:
             episode_counter += 1
             print("********  0 Begin the training episode: ", episode_counter, ", currently ", Q_update_counter, " step  *******************")
             initial_frame = env.reset()
-            self.preprocessor.reset()
-            prev_phi_state_n = self.preprocessor.process_state_for_network(initial_frame, initial_frame)
-            prev_phi_state_m = self.preprocessor.process_state_for_memory(initial_frame, initial_frame)
-            prev_frame = np.copy(initial_frame)
-            for t in range(max_episode_length):
+            current_lives = env.env.ale.lives()
+            prev_frame = self.preprocessor.process_frame_for_memory(initial_frame)
+            self.memory.append_frame(prev_frame)
+            for t in range(1, max_episode_length):
                 # Generate samples according to different policy
                 if self.memory.current_size > self.num_burn_in:
+                    if self.memory.index == 0:
+                        _state = self.stack_frames(self.memory.index-1, t)
+                    else:
+                        _state = self.stack_frames(self.memory.current_size-1, t)
                     _rand = np.random.uniform()
                     if _rand < 0.50:
-                        _tmp = self.calc_q_values(np.asarray([prev_phi_state_n,]), self.q_network)
+                        _tmp = self.calc_q_values(np.asarray([_state,]), self.q_network)
                     else:
-                        _tmp = self.calc_q_values(np.asarray([prev_phi_state_n,]), second_q_net)
+                        _tmp = self.calc_q_values(np.asarray([_state,]), second_q_net)
                     _action = self.policy.select_action(_tmp[0], True)
                 else:
                     _action = np.random.randint(0, self.policy.epsilon_greedy_policy.num_actions)
                 next_frame, reward, is_terminal, debug_info = env.step(_action)
+
+                # Process the raw reward
                 reward = self.preprocessor.process_reward(reward)
-                phi_state_n = self.preprocessor.process_state_for_network(next_frame, prev_frame)
-                phi_state_m = self.preprocessor.process_state_for_memory(next_frame, prev_frame)
-                self.memory.append(prev_phi_state_m, _action, reward, phi_state_m, is_terminal)
+                if current_lives > env.env.ale.lives():
+                    reward -= 50
+                elif current_lives < env.env.ale.lives():
+                    reward += 50
+                current_lives = env.env.ale.lives()
+
+                self.memory.append_other(_action, reward, t, is_terminal)
                 
                 # Save the trained Q-net at 4 check points
                 Q_update_counter += 1
@@ -361,20 +382,19 @@ class DQNAgent:
                         loss.append([Q_update_counter, self.update_policy_double(second_q_net)])
                         # print(self.calc_q_values(np.asarray([prev_phi_state_n,]), self.q_network)[0])
                         evaluate_counter += 1
-                        if evaluate_counter % 20000 == 0:
-                        # if evaluate_counter % 100 == 0:
+                        # if evaluate_counter % 20000 == 0:
+                        if evaluate_counter % 1000 == 0:
                             score.append([Q_update_counter, self.evaluate(env_name, 10, max_episode_length)])
                             print("1 The average total score for 10 episodes after ", evaluate_counter, " updates is ", score[-1])
                             print("2 The loss after ", evaluate_counter, " updates is: ", loss[-1])
 
-                prev_frame = np.copy(next_frame)
-                prev_phi_state_m = np.copy(phi_state_m)
-                prev_phi_state_n = np.copy(phi_state_n)
                 if is_terminal:
                     break
+
+                prev_frame = self.preprocessor.process_frame_for_memory(next_frame)
+                self.memory.append_frame(prev_frame)
             # Store the episode length
-            episode_len.append(Q_update_counter - old_Q_update_counter)
-            old_Q_update_counter = Q_update_counter
+            episode_len.append(t)
         # Save the episode_len, loss, score into files
         pickle.dump( episode_len, open( output_add + "/episode_length.p", "wb" ) )
         pickle.dump( loss, open( output_add + "/loss.p", "wb" ) )
