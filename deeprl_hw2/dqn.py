@@ -181,7 +181,7 @@ class DQNAgent:
                 break
             # For every new episode, reset the environment and the preprocessor
             episode_counter += 1
-            print("********  0 Begin the training episode: ", episode_counter, ", currently ", Q_update_counter, " step  *******************")
+            # print("********  0 Begin the training episode: ", episode_counter, ", currently ", Q_update_counter, " step  *******************")
             initial_frame = env.reset()
             current_lives = env.env.ale.lives()
             prev_frame = self.preprocessor.process_frame_for_memory(initial_frame)
@@ -210,29 +210,53 @@ class DQNAgent:
 
                 self.memory.append_other(_action, reward, t, is_terminal)
 
-                # Save the trained Q-net at 4 check points
+                # Save the trained Q-net at 5 check points
                 Q_update_counter += 1
                 if Q_update_counter == 1:
-                    self.q_network.save(output_add + '/qnet-0of3.h5')
-                elif Q_update_counter == num_iterations // 3:
-                    self.q_network.save(output_add + '/qnet-1of3.h5')
-                elif Q_update_counter == num_iterations // 3 * 2:
-                    self.q_network.save(output_add + '/qnet-2of3.h5')
+                    self.q_network.save(output_add + '/qnet-0of5.h5')
+                elif Q_update_counter == num_iterations // 5:
+                    self.q_network.save(output_add + '/qnet-1of5.h5')
+                    # Save the episode_len, loss, score into files
+                    pickle.dump( episode_len, open( output_add + "/episode_length-1of5.p", "wb" ) )
+                    pickle.dump( loss, open( output_add + "/loss-1of5.p", "wb" ) )
+                    pickle.dump( score, open( output_add + "/score-1of5.p", "wb" ) )
+                elif Q_update_counter == num_iterations // 5 * 2:
+                    self.q_network.save(output_add + '/qnet-2of5.h5')
+                    # Save the episode_len, loss, score into files
+                    pickle.dump( episode_len, open( output_add + "/episode_length-2of5.p", "wb" ) )
+                    pickle.dump( loss, open( output_add + "/loss-2of5.p", "wb" ) )
+                    pickle.dump( score, open( output_add + "/score-2of5.p", "wb" ) )
+                elif Q_update_counter == num_iterations // 5 * 3:
+                    self.q_network.save(output_add + '/qnet-3of5.h5')
+                    # Save the episode_len, loss, score into files
+                    pickle.dump( episode_len, open( output_add + "/episode_length-3of5.p", "wb" ) )
+                    pickle.dump( loss, open( output_add + "/loss-3of5.p", "wb" ) )
+                    pickle.dump( score, open( output_add + "/score-3of5.p", "wb" ) )
+                elif Q_update_counter == num_iterations // 5 * 4:
+                    self.q_network.save(output_add + '/qnet-4of5.h5')
+                    # Save the episode_len, loss, score into files
+                    pickle.dump( episode_len, open( output_add + "/episode_length-4of5.p", "wb" ) )
+                    pickle.dump( loss, open( output_add + "/loss-4of5.p", "wb" ) )
+                    pickle.dump( score, open( output_add + "/score-4of5.p", "wb" ) )
                 elif Q_update_counter == num_iterations:
-                    self.q_network.save(output_add + '/qnet-3of3.h5')
+                    self.q_network.save(output_add + '/qnet-5of5.h5')
+                    # Save the episode_len, loss, score into files
+                    pickle.dump( episode_len, open( output_add + "/episode_length-5of5.p", "wb" ) )
+                    pickle.dump( loss, open( output_add + "/loss-5of5.p", "wb" ) )
+                    pickle.dump( score, open( output_add + "/score-5of5.p", "wb" ) )
 
                 # Update the Q net using minibatch from replay memory and update the target Q net
                 if self.memory.current_size > self.num_burn_in:
                     # Update the Q network every self.train_freq steps
                     if Q_update_counter % self.train_freq == 0:
-                        loss.append([Q_update_counter, self.update_policy(target_q)])
-                        # print(self.calc_q_values(np.asarray([prev_phi_state_n,]), self.q_network)[0])
+                        tmp_value = [Q_update_counter, self.update_policy(target_q)]
                         evaluate_counter += 1
-                        # if evaluate_counter % 20000 == 0:
-                        if evaluate_counter % 1000 == 0:
+                        if evaluate_counter % 20000 == 0:
+                        # if evaluate_counter % 100 == 0:
+                            loss.append(tmp_value)
                             score.append([Q_update_counter, self.evaluate(env_name, 10, max_episode_length)])
-                            print("1 The average total score for 10 episodes after ", evaluate_counter, " updates is ", score[-1])
-                            print("2 The loss after ", evaluate_counter, " updates is: ", loss[-1])
+                            # print("1 The average total score for 10 episodes after ", evaluate_counter, " updates is ", score[-1])
+                            # print("2 The loss after ", evaluate_counter, " updates is: ", loss[-1])
                     # Update the target Q network every self.target_update_freq steps
                     targetQ_update_counter += 1
                     if targetQ_update_counter == self.target_update_freq:
@@ -247,10 +271,6 @@ class DQNAgent:
                 self.memory.append_frame(prev_frame)
             # Store the episode length
             episode_len.append(t)
-        # Save the episode_len, loss, score into files
-        pickle.dump( episode_len, open( output_add + "/episode_length.p", "wb" ) )
-        pickle.dump( loss, open( output_add + "/loss.p", "wb" ) )
-        pickle.dump( score, open( output_add + "/score.p", "wb" ) )
 
 
 # ''' ========================================================================'''
@@ -260,9 +280,7 @@ class DQNAgent:
         """Update your policy in double Q network
 
         """
-        # mini_batch = self.preprocessor.process_batch(self.memory.sample(self.batch_size))
         mini_batch_index = self.memory.sample(self.batch_size)
-
         x = []
         x_next = []
         for _sample_index in mini_batch_index:
@@ -332,7 +350,7 @@ class DQNAgent:
                 break
             # For every new episode, reset the environment and the preprocessor
             episode_counter += 1
-            print("********  0 Begin the training episode: ", episode_counter, ", currently ", Q_update_counter, " step  *******************")
+            # print("********  0 Begin the training episode: ", episode_counter, ", currently ", Q_update_counter, " step  *******************")
             initial_frame = env.reset()
             current_lives = env.env.ale.lives()
             prev_frame = self.preprocessor.process_frame_for_memory(initial_frame)
@@ -364,29 +382,53 @@ class DQNAgent:
 
                 self.memory.append_other(_action, reward, t, is_terminal)
                 
-                # Save the trained Q-net at 4 check points
+                # Save the trained Q-net at 5 check points
                 Q_update_counter += 1
                 if Q_update_counter == 1:
-                    self.q_network.save(output_add + '/qnet-0of3.h5')
-                elif Q_update_counter == num_iterations // 3:
-                    self.q_network.save(output_add + '/qnet-1of3.h5')
-                elif Q_update_counter == num_iterations // 3 * 2:
-                    self.q_network.save(output_add + '/qnet-2of3.h5')
+                    self.q_network.save(output_add + '/qnet-0of5.h5')
+                elif Q_update_counter == num_iterations // 5:
+                    self.q_network.save(output_add + '/qnet-1of5.h5')
+                    # Save the episode_len, loss, score into files
+                    pickle.dump( episode_len, open( output_add + "/episode_length-1of5.p", "wb" ) )
+                    pickle.dump( loss, open( output_add + "/loss-1of5.p", "wb" ) )
+                    pickle.dump( score, open( output_add + "/score-1of5.p", "wb" ) )
+                elif Q_update_counter == num_iterations // 5 * 2:
+                    self.q_network.save(output_add + '/qnet-2of5.h5')
+                    # Save the episode_len, loss, score into files
+                    pickle.dump( episode_len, open( output_add + "/episode_length-2of5.p", "wb" ) )
+                    pickle.dump( loss, open( output_add + "/loss-2of5.p", "wb" ) )
+                    pickle.dump( score, open( output_add + "/score-2of5.p", "wb" ) )
+                elif Q_update_counter == num_iterations // 5 * 3:
+                    self.q_network.save(output_add + '/qnet-3of5.h5')
+                    # Save the episode_len, loss, score into files
+                    pickle.dump( episode_len, open( output_add + "/episode_length-3of5.p", "wb" ) )
+                    pickle.dump( loss, open( output_add + "/loss-3of5.p", "wb" ) )
+                    pickle.dump( score, open( output_add + "/score-3of5.p", "wb" ) )
+                elif Q_update_counter == num_iterations // 5 * 4:
+                    self.q_network.save(output_add + '/qnet-4of5.h5')
+                    # Save the episode_len, loss, score into files
+                    pickle.dump( episode_len, open( output_add + "/episode_length-4of5.p", "wb" ) )
+                    pickle.dump( loss, open( output_add + "/loss-4of5.p", "wb" ) )
+                    pickle.dump( score, open( output_add + "/score-4of5.p", "wb" ) )
                 elif Q_update_counter == num_iterations:
-                    self.q_network.save(output_add + '/qnet-3of3.h5')
+                    self.q_network.save(output_add + '/qnet-5of5.h5')
+                    # Save the episode_len, loss, score into files
+                    pickle.dump( episode_len, open( output_add + "/episode_length-5of5.p", "wb" ) )
+                    pickle.dump( loss, open( output_add + "/loss-5of5.p", "wb" ) )
+                    pickle.dump( score, open( output_add + "/score-5of5.p", "wb" ) )
 
                 # Update the Q net using minibatch from replay memory and update the target Q net
                 if self.memory.current_size > self.num_burn_in:
                     # Update the Q network every self.train_freq steps
                     if Q_update_counter % self.train_freq == 0:
-                        loss.append([Q_update_counter, self.update_policy_double(second_q_net)])
-                        # print(self.calc_q_values(np.asarray([prev_phi_state_n,]), self.q_network)[0])
+                        tmp_value = [Q_update_counter, self.update_policy_double(second_q_net)]
                         evaluate_counter += 1
-                        # if evaluate_counter % 20000 == 0:
-                        if evaluate_counter % 1000 == 0:
+                        if evaluate_counter % 20000 == 0:
+                        # if evaluate_counter % 100 == 0:
+                            loss.append(tmp_value)
                             score.append([Q_update_counter, self.evaluate(env_name, 10, max_episode_length)])
-                            print("1 The average total score for 10 episodes after ", evaluate_counter, " updates is ", score[-1])
-                            print("2 The loss after ", evaluate_counter, " updates is: ", loss[-1])
+                            # print("1 The average total score for 10 episodes after ", evaluate_counter, " updates is ", score[-1])
+                            # print("2 The loss after ", evaluate_counter, " updates is: ", loss[-1])
 
                 if is_terminal:
                     break
@@ -395,10 +437,6 @@ class DQNAgent:
                 self.memory.append_frame(prev_frame)
             # Store the episode length
             episode_len.append(t)
-        # Save the episode_len, loss, score into files
-        pickle.dump( episode_len, open( output_add + "/episode_length.p", "wb" ) )
-        pickle.dump( loss, open( output_add + "/loss.p", "wb" ) )
-        pickle.dump( score, open( output_add + "/score.p", "wb" ) )
 # ''' ========================================================================'''
 # ''' =====================  End For double Q-net ============================'''
 # ''' ========================================================================'''

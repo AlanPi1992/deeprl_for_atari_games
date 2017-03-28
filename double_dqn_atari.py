@@ -51,14 +51,14 @@ def create_model(window, input_shape, num_actions,
     # Using tensorflow name scope
     # Create a deep Q-network
     with tf.name_scope(model_name):
-        input_img = Input(shape = (window,) + input_shape) # Input shape = (4, 84, 84)
-        conv1 = Convolution2D(32, (8,8), strides=4, padding='same', activation='relu')(input_img)
-        # conv1 = Dropout(0.2)(conv1)
-        conv2 = Convolution2D(64, (4,4), strides=2, padding='same', activation='relu')(conv1)
-        # conv2 = Dropout(0.2)(conv2)
-        # conv2 = Convolution2D(64, (3,3), strides=1, padding='same', activation='relu')(conv2)
+        input_img = Input(shape = (window,) + input_shape) # Input shape = (batch, 4, 84, 84)
+        conv1 = Convolution2D(16, (8,8), data_format='channels_first', strides=(4, 4), padding='valid')(input_img)
+        conv1 = Activation('relu')(conv1)
+        conv2 = Convolution2D(32, (4,4), data_format='channels_first', strides=(2, 2), padding='valid')(conv1)
+        conv2 = Activation('relu')(conv2)
         flat = Flatten()(conv2) # Flatten the convoluted hidden layers before full-connected layers
-        full = Dense(512, activation='relu')(flat)
+        full = Dense(256)(flat)
+        full = Activation('relu')(full)
         out = Dense(num_actions)(full) # output layer has node number = num_actions
         model = Model(input = input_img, output = out)
     return model
@@ -141,7 +141,7 @@ def main():  # noqa: D103
 
     # Initialize a DQNAgent
     DQNAgent = tfrl.dqn.DQNAgent(q_net, atari_preprocessor, replay_memory, policy, gamma=0.99,
-                                 target_update_freq=10000, num_burn_in=75000, train_freq=4, 
+                                 target_update_freq=10000, num_burn_in=100000, train_freq=4, 
                                  batch_size=32, window_size=4)
     # print('======================== DQN agent is created. =========================')
 
@@ -151,7 +151,7 @@ def main():  # noqa: D103
     q_net.compile(optimizer=adam, loss=mean_huber_loss)
     # print('======================== Model compilation finished! =========================')
     # print('======================== Model training begin! =========================')
-    DQNAgent.fit_double(env, args.env, args.output, 3000000, 100000)
+    DQNAgent.fit_double(env, args.env, args.output, 5000000, 100000)
     # print('======================== Model training finished! =========================')
 
 
