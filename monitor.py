@@ -19,7 +19,10 @@ from PIL import Image
 
 import deeprl_hw2 as tfrl
 from deeprl_hw2.dqn import DQNAgent
-from deeprl_hw2.objectives import mean_huber_loss
+from deeprl_hw2.objectives import mean_huber_loss, mean_huber_loss_duel
+
+import pickle
+import matplotlib.pyplot as plt
 
 
 def get_output_folder(parent_dir, env_name):
@@ -83,13 +86,13 @@ def main():  # noqa: D103
     policy = tfrl.policy.LinearDecayGreedyEpsilonPolicy(_policy, 1, 0.1, 1000000)
 
     print('load trained model...') 
-    # q_net = load_model('qnet-1of3.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
-    q_net = load_model('deepQ/SpaceInvaders-v0-run2/qnet-0of3.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
-    # q_net = load_model('deepQ/Breakout-v0-run28/qnet-0of3.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
-    # q_net = load_model('deepQ/Enduro-v0-run29/qnet-0of3.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
-
-    mean_reward = 0
-    num_episodes = 20
+    # q_net = load_model('Final_Results/SpaceInvaders-v0-run2-DuelQ/qnet-1of5.h5', custom_objects={'mean_huber_loss_duel': mean_huber_loss_duel})
+    # q_net = load_model('Final_Results/SpaceInvaders-v0-run2-DoubleQ/qnet-1of5.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
+    q_net = load_model('Final_Results/SpaceInvaders-v0-run4-DeepQ/qnet-1of5.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
+    # q_net = load_model('deepQ/Enduro-v0-run37/qnet-1of5.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
+    
+    num_episodes = 5
+    rewards = []
     for episode in range(num_episodes):
         initial_frame = env.reset()
         state = np.zeros((4, 84, 84), dtype=np.float32)
@@ -107,11 +110,11 @@ def main():  # noqa: D103
         	# print(_tmp[0])
         	# print(_action, reward, is_terminal, debug_info)
         	# if reward != 0:
-        		# print(reward)
+        	# print(reward)
 
         	phi_state_n = preprocessor.process_state_for_network(next_frame, prev_frame)
         	total_reward += reward
-        	# print(total_reward)
+        	print(total_reward)
         	
         	if is_terminal:
         		print("Episode finished after {} timesteps".format(t+1))
@@ -122,8 +125,10 @@ def main():  # noqa: D103
         	state[:-1] = state[1:]
         	state[-1] = np.copy(prev_frame)
 
-        mean_reward += total_reward
-    print(mean_reward/num_episodes)
+        rewards.append(total_reward)
+    rewards = np.asarray(rewards)
+    print(np.mean(rewards))
+    print(np.std(rewards))
 
 
 if __name__ == '__main__':
