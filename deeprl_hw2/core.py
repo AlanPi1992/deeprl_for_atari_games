@@ -198,10 +198,12 @@ class ReplayMemory:
         self.current_size = 0
         self.buffer = [0 for i in range(max_size)]
         self.other_buffer = [0 for i in range(max_size)]
-        self.index = 0 # track the index where the next sample should be inserted
+        self.index = 0 # track the index where the next sample should be stored
 
     def append_frame(self, frame):
+        # Store the frame into replay memory
         self.buffer[self.index] = np.copy(frame)
+        # Update the current_size and the index for next storage
         self.index += 1
         if self.current_size < self.buffer_size:
             self.current_size += 1
@@ -209,6 +211,7 @@ class ReplayMemory:
             self.index = 0
 
     def append_other(self, action, reward, timestamp, is_terminal):
+        # Store the other information of samples into replay memory
         _sample = Sample(action, reward, timestamp, is_terminal)
         if self.index == 0:
             self.other_buffer[self.buffer_size-1] = _sample
@@ -216,11 +219,12 @@ class ReplayMemory:
             self.other_buffer[self.index-1] = _sample
 
     def sample(self, batch_size):
+        # sample a minibatch of index
         indexes = random.choice(self.current_size, batch_size, replace=False)
         return indexes
 
-    def clear(self):
-        self.buffer = [0 for i in range(self.buffer_size)]
-        self.other_buffer = [0 for i in range(self.buffer_size)]
-        self.index = 0
-        self.current_size = 0
+    # def clear(self):
+    #     self.buffer = [0 for i in range(self.buffer_size)]
+    #     self.other_buffer = [0 for i in range(self.buffer_size)]
+    #     self.index = 0
+    #     self.current_size = 0

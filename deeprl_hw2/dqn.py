@@ -99,9 +99,11 @@ class DQNAgent:
         You might want to return the loss and other metrics as an
         output. They can help you monitor how training is going.
         """
+
+        # Get a mini batch of samples (only index)
         mini_batch_index = self.memory.sample(self.batch_size)
         x = []
-        x_next  = []
+        x_next  = [] # For next state
         for _sample_index in mini_batch_index:
             x.append(self.stack_frames(_sample_index, self.memory.other_buffer[_sample_index].timestamp))
             _next_index = _sample_index + 1
@@ -115,6 +117,7 @@ class DQNAgent:
         y_next = self.calc_q_values(x_next, target_q) # reserve the order in mini_batch 
         y_max = np.amax(y_next, axis=1)
 
+        # Q learning update
         counter = 0
         for _sample_index in mini_batch_index:
             if self.memory.other_buffer[_sample_index].is_terminal:
@@ -144,6 +147,7 @@ class DQNAgent:
                 index -= 1
                 if index == -1:
                     index = self.memory.current_size-1
+        # Convert datatype to float32 and normalize to [0, 1]
         _state = _state.astype(dtype=np.float32)
         return _state/255
 
@@ -185,7 +189,7 @@ class DQNAgent:
             initial_frame = env.reset()
             current_lives = env.env.ale.lives()
             prev_frame = self.preprocessor.process_frame_for_memory(initial_frame)
-            self.memory.append_frame(prev_frame)
+            self.memory.append_frame(prev_frame) # apppend the frame into replay memory
             for t in range(1, max_episode_length):
                 # Generate samples according to different policy
                 if self.memory.current_size > self.num_burn_in:
@@ -198,17 +202,19 @@ class DQNAgent:
                 else:
                     _action = np.random.randint(0, self.policy.epsilon_greedy_policy.num_actions)
 
+                # Take 1 action
                 next_frame, reward, is_terminal, debug_info = env.step(_action)
 
                 # Process the raw reward
-                reward = self.preprocessor.process_reward(reward)
+                # reward = self.preprocessor.process_reward(reward)
                 if current_lives > env.env.ale.lives():
                     reward -= 50
                 elif current_lives < env.env.ale.lives():
                     reward += 50
                 current_lives = env.env.ale.lives()
 
-                self.memory.append_other(_action, reward, t, is_terminal)
+                # append other infor to replay memory (action, reward, t, is_terminal)
+                self.memory.append_other(_action, reward, t, is_terminal) 
 
                 # Save the trained Q-net at 5 check points
                 Q_update_counter += 1
@@ -267,10 +273,13 @@ class DQNAgent:
                 if is_terminal:
                     break
 
+                # if it is not terminal, process the frame and append to replay memory
                 prev_frame = self.preprocessor.process_frame_for_memory(next_frame)
                 self.memory.append_frame(prev_frame)
             # Store the episode length
             episode_len.append(t)
+
+
 
 
 # ''' ========================================================================'''
@@ -280,6 +289,8 @@ class DQNAgent:
         """Update your policy in double Q network
 
         """
+
+        # Get a mini batch of samples (only index)        
         mini_batch_index = self.memory.sample(self.batch_size)
         x = []
         x_next = []
@@ -293,6 +304,7 @@ class DQNAgent:
         x_next = np.asarray(x_next)
 
         # Randomly change the role of q network 1 and 2 and do update
+        # Q learning update
         _rand = np.random.uniform()
         if _rand < 0.50:
             y = self.calc_q_values(x, self.q_network)
@@ -373,7 +385,7 @@ class DQNAgent:
                 next_frame, reward, is_terminal, debug_info = env.step(_action)
 
                 # Process the raw reward
-                reward = self.preprocessor.process_reward(reward)
+                # reward = self.preprocessor.process_reward(reward)
                 if current_lives > env.env.ale.lives():
                     reward -= 50
                 elif current_lives < env.env.ale.lives():
@@ -440,6 +452,7 @@ class DQNAgent:
 # ''' ========================================================================'''
 # ''' =====================  End For double Q-net ============================'''
 # ''' ========================================================================'''
+
 
 
 

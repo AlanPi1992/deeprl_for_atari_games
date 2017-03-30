@@ -96,9 +96,9 @@ def main():  # noqa: D103
 
     # q_net = load_model('deepQ/Enduro-v0-run37/qnet-1of5.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
 
-    q_net = load_model('Final_Results/Enduro-v0-run1-DuelQ/qnet-1of5.h5', custom_objects={'mean_huber_loss_duel': mean_huber_loss_duel})
+    # q_net = load_model('Final_Results/Enduro-v0-run1-DuelQ/qnet-1of5.h5', custom_objects={'mean_huber_loss_duel': mean_huber_loss_duel})
     # q_net = load_model('Final_Results/Enduro-v0-run1-DoubleQ/qnet-2of5.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
-    # q_net = load_model('Final_Results/Enduro-v0-run1-DeepQ/qnet-1of5.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
+    q_net = load_model('Final_Results/Enduro-v0-run1-DeepQ/qnet-1of5.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
     # q_net = load_model('Final_Results/Enduro-v0-run1-LinearDoubleQ/qnet-2of5.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
     # q_net = load_model('Final_Results/Enduro-v0-run1-LinearQ/qnet-2of5.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
 
