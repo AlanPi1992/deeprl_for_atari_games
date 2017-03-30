@@ -1,4 +1,6 @@
-''' Using Moniter to evaluate model '''
+''' Using Moniter to evaluate model 
+              and 
+    to generate video csapture '''
 
 import argparse
 import os
@@ -87,11 +89,20 @@ def main():  # noqa: D103
 
     print('load trained model...') 
     # q_net = load_model('Final_Results/SpaceInvaders-v0-run2-DuelQ/qnet-1of5.h5', custom_objects={'mean_huber_loss_duel': mean_huber_loss_duel})
-    # q_net = load_model('Final_Results/SpaceInvaders-v0-run2-DoubleQ/qnet-1of5.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
-    q_net = load_model('Final_Results/SpaceInvaders-v0-run4-DeepQ/qnet-1of5.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
+    # q_net = load_model('Final_Results/SpaceInvaders-v0-run2-DoubleQ/qnet-2of5.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
+    # q_net = load_model('Final_Results/SpaceInvaders-v0-run4-DeepQ/qnet-2of5.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
+    # q_net = load_model('Final_Results/SpaceInvaders-v0-run2-LinearDoubleQ/qnet-2of5.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
+    # q_net = load_model('Final_Results/SpaceInvaders-v0-run1-LinearQ/qnet-2of5.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
+
     # q_net = load_model('deepQ/Enduro-v0-run37/qnet-1of5.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
-    
-    num_episodes = 5
+
+    q_net = load_model('Final_Results/Enduro-v0-run1-DuelQ/qnet-1of5.h5', custom_objects={'mean_huber_loss_duel': mean_huber_loss_duel})
+    # q_net = load_model('Final_Results/Enduro-v0-run1-DoubleQ/qnet-2of5.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
+    # q_net = load_model('Final_Results/Enduro-v0-run1-DeepQ/qnet-1of5.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
+    # q_net = load_model('Final_Results/Enduro-v0-run1-LinearDoubleQ/qnet-2of5.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
+    # q_net = load_model('Final_Results/Enduro-v0-run1-LinearQ/qnet-2of5.h5', custom_objects={'mean_huber_loss': mean_huber_loss})
+
+    num_episodes = 10
     rewards = []
     for episode in range(num_episodes):
         initial_frame = env.reset()
@@ -103,28 +114,27 @@ def main():  # noqa: D103
         state[-1] = np.copy(prev_frame)
         total_reward = 0
         for t in range(100000):
-        	env.render()
-        	_tmp = q_net.predict_on_batch( np.asarray([state,]) )
-        	_action = policy.select_action(_tmp[0], False)
-        	next_frame, reward, is_terminal, debug_info = env.step(_action)
-        	# print(_tmp[0])
-        	# print(_action, reward, is_terminal, debug_info)
-        	# if reward != 0:
-        	# print(reward)
+            # env.render()
+            _tmp = q_net.predict_on_batch( np.asarray([state,]) )
+            _action = policy.select_action(_tmp[0], False)
+            next_frame, reward, is_terminal, debug_info = env.step(_action)
 
-        	phi_state_n = preprocessor.process_state_for_network(next_frame, prev_frame)
-        	total_reward += reward
-        	print(total_reward)
-        	
-        	if is_terminal:
-        		print("Episode finished after {} timesteps".format(t+1))
-        		break
+            # if reward != 0:
+                # print(total_reward)
 
-        	prev_frame = preprocessor.process_frame_for_memory(next_frame).astype(dtype=np.float32)
-        	prev_frame = prev_frame/255
-        	state[:-1] = state[1:]
-        	state[-1] = np.copy(prev_frame)
+            phi_state_n = preprocessor.process_state_for_network(next_frame, prev_frame)
+            total_reward += reward
 
+            if is_terminal:
+                print("Episode finished after {} timesteps".format(t+1))
+                break
+
+            prev_frame = preprocessor.process_frame_for_memory(next_frame).astype(dtype=np.float32)
+            prev_frame = prev_frame/255
+            state[:-1] = state[1:]
+            state[-1] = np.copy(prev_frame)
+
+        print(total_reward)
         rewards.append(total_reward)
     rewards = np.asarray(rewards)
     print(np.mean(rewards))
